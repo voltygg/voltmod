@@ -6,27 +6,6 @@
 namespace VoltMod
 {
 
-// A draw ignores write failures: the screen logs the first one per slot and the next redraw retries.
-static void Text(Screen& screen, int slot, std::string_view variable, std::string_view value)
-{
-    static_cast<void>(screen.SetText(slot, variable, value));
-}
-
-static void Class(Screen& screen, int slot, std::string_view elementId, std::string_view className, bool on)
-{
-    static_cast<void>(screen.SetClass(slot, elementId, className, on));
-}
-
-static void Hidden(Screen& screen, int slot, std::string_view elementId, bool hidden)
-{
-    static_cast<void>(screen.SetHidden(slot, elementId, hidden));
-}
-
-static void Cursor(Screen& screen, int slot, bool shown)
-{
-    static_cast<void>(screen.ShowCursor(slot, shown));
-}
-
 PanoramaMenuLayout::PanoramaMenuLayout(ScreenManager& screens, std::string_view screen, std::size_t tabs,
                                        std::size_t rows, std::span<const std::string_view> iconNames)
     : _screens(screens, std::string(screen)),
@@ -73,8 +52,8 @@ bool PanoramaMenuLayout::Show(int slot)
         return false;
     }
 
-    Hidden(screen, slot, _root, false);
-    Cursor(screen, slot, true);
+    screen.SetHidden(slot, _root, false);
+    screen.ShowCursor(slot, true);
     return true;
 }
 
@@ -87,34 +66,34 @@ void PanoramaMenuLayout::Hide(int slot)
     }
 
     // Clients draw only their first custom_hud_layout, so a hidden one would block the next menu.
-    Cursor(*screen, slot, false);
+    screen->ShowCursor(slot, false);
     screen->Remove();
 }
 
 void PanoramaMenuLayout::SetHeader(int slot, const MenuHeader& header)
 {
     Screen& screen = _screens.For(slot);
-    Text(screen, slot, "brand", header.Brand);
-    Text(screen, slot, "brand_subtitle", header.BrandSubtitle);
-    Text(screen, slot, "breadcrumb", header.Breadcrumb);
-    Text(screen, slot, "title", header.Title);
-    Text(screen, slot, "subtitle", header.Subtitle);
-    Hidden(screen, slot, _subtitle, header.Subtitle.empty());
+    screen.SetText(slot, "brand", header.Brand);
+    screen.SetText(slot, "brand_subtitle", header.BrandSubtitle);
+    screen.SetText(slot, "breadcrumb", header.Breadcrumb);
+    screen.SetText(slot, "title", header.Title);
+    screen.SetText(slot, "subtitle", header.Subtitle);
+    screen.SetHidden(slot, _subtitle, header.Subtitle.empty());
 
     for (const ScreenText& text : _texts)
     {
-        Text(screen, slot, text.Variable, text.Value(slot));
+        screen.SetText(slot, text.Variable, text.Value(slot));
     }
 }
 
 void PanoramaMenuLayout::SetSidebarVisible(int slot, bool visible)
 {
-    Class(_screens.For(slot), slot, _root, "screen--no-sidebar", !visible);
+    _screens.For(slot).SetClass(slot, _root, "screen--no-sidebar", !visible);
 }
 
 void PanoramaMenuLayout::SetHomeVisible(int slot, bool visible)
 {
-    Class(_screens.For(slot), slot, _root, "screen--home", visible);
+    _screens.For(slot).SetClass(slot, _root, "screen--home", visible);
 }
 
 void PanoramaMenuLayout::SetTab(int slot, int index, const MenuTab* tab)
@@ -122,16 +101,16 @@ void PanoramaMenuLayout::SetTab(int slot, int index, const MenuTab* tab)
     const TabIds& ids = _tabs[static_cast<std::size_t>(index)];
     Screen& screen = _screens.For(slot);
 
-    Hidden(screen, slot, ids.Id, !tab);
+    screen.SetHidden(slot, ids.Id, !tab);
     if (!tab)
     {
         return;
     }
 
-    Text(screen, slot, ids.LabelVar, tab->Label);
-    Class(screen, slot, ids.Id, "tab--selected", tab->Selected);
+    screen.SetText(slot, ids.LabelVar, tab->Label);
+    screen.SetClass(slot, ids.Id, "tab--selected", tab->Selected);
 
-    static_cast<void>(screen.ShowIcon(slot, ids.Icon, _iconNames, tab->Icon));
+    screen.ShowIcon(slot, ids.Icon, _iconNames, tab->Icon);
 }
 
 void PanoramaMenuLayout::SetRow(int slot, int index, const MenuRow* row, std::string_view pendingHint)
@@ -139,59 +118,59 @@ void PanoramaMenuLayout::SetRow(int slot, int index, const MenuRow* row, std::st
     const RowIds& ids = _rows[static_cast<std::size_t>(index)];
     Screen& screen = _screens.For(slot);
 
-    Hidden(screen, slot, ids.Id, !row);
+    screen.SetHidden(slot, ids.Id, !row);
     if (!row)
     {
         return;
     }
 
     const bool toggle = row->Kind == MenuRowKind::Toggle;
-    Text(screen, slot, ids.LabelVar, row->Label);
-    Text(screen, slot, ids.ValueVar, row->Value);
-    Class(screen, slot, ids.Id, "row--value", !row->Value.empty());
-    Class(screen, slot, ids.Id, "row--disabled", !row->Enabled);
-    Class(screen, slot, ids.Id, "row--on", row->State.value_or(false));
-    Class(screen, slot, ids.Id, "row--toggle", toggle);
-    Class(screen, slot, ids.Id, "row--chevron", row->Kind == MenuRowKind::Submenu || row->Kind == MenuRowKind::Input);
+    screen.SetText(slot, ids.LabelVar, row->Label);
+    screen.SetText(slot, ids.ValueVar, row->Value);
+    screen.SetClass(slot, ids.Id, "row--value", !row->Value.empty());
+    screen.SetClass(slot, ids.Id, "row--disabled", !row->Enabled);
+    screen.SetClass(slot, ids.Id, "row--on", row->State.value_or(false));
+    screen.SetClass(slot, ids.Id, "row--toggle", toggle);
+    screen.SetClass(slot, ids.Id, "row--chevron", row->Kind == MenuRowKind::Submenu || row->Kind == MenuRowKind::Input);
     // An inert row still ships a live button, so without this it hovers and clicks like any other.
-    Class(screen, slot, ids.Id, "row--static", !row->Selectable);
-    Class(screen, slot, ids.Id, "row--steppers", row->Steppable && row->Enabled && !toggle);
-    Class(screen, slot, ids.Id, "row--pending", row->Pending);
+    screen.SetClass(slot, ids.Id, "row--static", !row->Selectable);
+    screen.SetClass(slot, ids.Id, "row--steppers", row->Steppable && row->Enabled && !toggle);
+    screen.SetClass(slot, ids.Id, "row--pending", row->Pending);
     if (row->Pending)
     {
-        Text(screen, slot, ids.HintVar, pendingHint);
+        screen.SetText(slot, ids.HintVar, pendingHint);
     }
 }
 
 void PanoramaMenuLayout::SetEmpty(int slot, std::string_view text)
 {
     Screen& screen = _screens.For(slot);
-    Text(screen, slot, "empty", text);
-    Hidden(screen, slot, _empty, text.empty());
+    screen.SetText(slot, "empty", text);
+    screen.SetHidden(slot, _empty, text.empty());
 }
 
 void PanoramaMenuLayout::SetPager(int slot, std::string_view text)
 {
     Screen& screen = _screens.For(slot);
-    Text(screen, slot, "page", text);
-    Hidden(screen, slot, _page, text.empty());
+    screen.SetText(slot, "page", text);
+    screen.SetHidden(slot, _page, text.empty());
 }
 
 void PanoramaMenuLayout::SetPrompt(int slot, std::string_view text, std::string_view hint)
 {
     Screen& screen = _screens.For(slot);
-    Text(screen, slot, "prompt_text", text);
-    Text(screen, slot, "prompt_hint", hint);
-    Hidden(screen, slot, _prompt, text.empty());
-    Class(screen, slot, _root, "screen--prompting", !text.empty());
+    screen.SetText(slot, "prompt_text", text);
+    screen.SetText(slot, "prompt_hint", hint);
+    screen.SetHidden(slot, _prompt, text.empty());
+    screen.SetClass(slot, _root, "screen--prompting", !text.empty());
 }
 
 void PanoramaMenuLayout::SetFooter(int slot, std::string_view back, std::string_view cancel)
 {
     Screen& screen = _screens.For(slot);
-    Text(screen, slot, "back", back);
-    Hidden(screen, slot, _back, back.empty());
-    Text(screen, slot, "cancel", cancel);
+    screen.SetText(slot, "back", back);
+    screen.SetHidden(slot, _back, back.empty());
+    screen.SetText(slot, "cancel", cancel);
 }
 
 void PanoramaMenuLayout::AddText(std::string_view variable, std::function<std::string(int slot)> text)

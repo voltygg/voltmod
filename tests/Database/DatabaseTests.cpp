@@ -120,10 +120,8 @@ TEST_CASE("Database: RunAsync delivers its result only through DispatchCompletio
     db.RunAsync(
         "ping-async",
         [](auto& conn) -> int {
-            for (const auto& row : conn(sqlpp::select(sqlpp::value(1).as(sqlpp::alias::a))))
-            {
-                (void)row;
-            }
+            for ([[maybe_unused]] const auto& row : conn(sqlpp::select(sqlpp::value(1).as(sqlpp::alias::a))))
+            {}
             return 1;
         },
         [&](Result<int> r) {

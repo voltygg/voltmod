@@ -94,15 +94,11 @@ Status Damage::Available() const
     return {};
 }
 
-Status Damage::Apply(const Entity& victim, const DamageInfo& info) const
+void Damage::Apply(const Entity& victim, const DamageInfo& info) const
 {
-    if (Status available = Available(); !available)
+    if (!victim || !Available())
     {
-        return available;
-    }
-    if (!victim)
-    {
-        return std::unexpected(Error::NotReady("no victim"));
+        return;
     }
 
     CEntityInstance* attacker = _entities.Get(info.Attacker).Raw();
@@ -132,7 +128,6 @@ Status Damage::Apply(const Entity& victim, const DamageInfo& info) const
     result.TotalledDamageDealt = info.Amount;
 
     _bindings.TakeDamage(victim.Raw(), &damage, &result);
-    return {};
 }
 
 }  // namespace VoltMod

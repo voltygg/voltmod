@@ -138,21 +138,12 @@ void Pawn::HoldFire(int tick) const
     }
 }
 
-Status Pawn::Slay() const
+void Pawn::Slay() const
 {
-    if (!_e || !_sys)
+    if (_e && _sys && _sys->Bindings().CommitSuicide)
     {
-        return std::unexpected(Error::NotReady("no pawn"));
+        _sys->Bindings().CommitSuicide(_e, false, true);
     }
-
-    const auto& suicide = _sys->Bindings().CommitSuicide;
-    if (!suicide)
-    {
-        return std::unexpected(Error::Unsupported("gamedata has no 'CBasePlayerPawn::CommitSuicide' vtable index"));
-    }
-
-    suicide(_e, false, true);
-    return {};
 }
 
 Pawn Entity::AsPawn() const

@@ -50,11 +50,7 @@ bool Map::ChangeToWorkshop(uint64_t workshopId)
         return false;
     }
 
-    if (auto queued = _conVars.ExecuteServerCommand(std::format("host_workshop_map {}", workshopId)); !queued)
-    {
-        Log::Warn("Map::ChangeToWorkshop: {}", queued.error().Detail);
-        return false;
-    }
+    _conVars.ExecuteServerCommand(std::format("host_workshop_map {}", workshopId));
     return true;
 }
 

@@ -81,10 +81,10 @@ public:
 
     /**
      * Deal @p info to @p victim through the engine, so death, the kill feed and `player_death`
-     * credit @p info's attacker as if its own weapon had hit.
-     * @return Error::NotReady for a falsy victim, Error::Unsupported when unavailable.
+     * credit @p info's attacker as if its own weapon had hit. Does nothing for a falsy victim or
+     * while @ref Available fails.
      */
-    Status Apply(const Entity& victim, const DamageInfo& info) const;
+    void Apply(const Entity& victim, const DamageInfo& info) const;
 
 private:
     bool Install();

@@ -33,8 +33,8 @@ public:
     /** Where shots start: the origin plus the view offset. */
     Vector EyePosition() const;
 
-    /** @return Error::Unsupported when the CommitSuicide index did not bind. */
-    Status Slay() const;
+    /** Does nothing when the CommitSuicide index did not bind. */
+    void Slay() const;
 
     /** The FL_GODMODE flag, which is what makes a CS2 pawn take no damage. */
     bool Godmode() const { return (Flags() & FL_GODMODE) != 0; }

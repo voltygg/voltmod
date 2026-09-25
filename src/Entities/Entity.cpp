@@ -106,22 +106,15 @@ QAngle Entity::Angles() const
     return node ? node.AbsRotation() : QAngle(0.0f, 0.0f, 0.0f);
 }
 
-Status Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angles,
-                        std::optional<Vector> velocity) const
+void Entity::Teleport(std::optional<Vector> origin, std::optional<QAngle> angles, std::optional<Vector> velocity) const
 {
-    if (!_e || !_sys)
+    if (!_e || !_sys || !_sys->Bindings().Teleport)
     {
-        return std::unexpected(Error::NotReady("no entity"));
+        return;
     }
 
-    const auto& teleport = _sys->Bindings().Teleport;
-    if (!teleport)
-    {
-        return std::unexpected(Error::Unsupported("gamedata has no 'CBaseEntity::Teleport' vtable slot"));
-    }
-
-    teleport(_e, origin ? &*origin : nullptr, angles ? &*angles : nullptr, velocity ? &*velocity : nullptr);
-    return {};
+    _sys->Bindings().Teleport(_e, origin ? &*origin : nullptr, angles ? &*angles : nullptr,
+                              velocity ? &*velocity : nullptr);
 }
 
 void Entity::SetMoveType(Schema::MoveType_t type) const

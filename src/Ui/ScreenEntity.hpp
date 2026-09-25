@@ -44,9 +44,9 @@ public:
     /** Remove the entity and forget everything written to it. Safe to call again. */
     void Remove();
 
-    Status WriteText(int slot, std::string_view variable, std::string_view value);
-    Status WriteClass(int slot, std::string_view elementId, std::string_view className, bool on);
-    Status WriteCursor(int slot, bool shown);
+    void WriteText(int slot, std::string_view variable, std::string_view value);
+    void WriteClass(int slot, std::string_view elementId, std::string_view className, bool on);
+    void WriteCursor(int slot, bool shown);
 
 private:
     bool IsForPlayer() const noexcept { return _owner != EveryoneSlot; }
@@ -71,8 +71,8 @@ private:
     Status SendClass(int engineSlot, std::string_view elementId, std::string_view className, bool on);
     Status SendCursor(int engineSlot, bool shown);
 
-    /** Pass @p status on; a failed per-slot write is forgotten so the next redraw retries, logged once. */
-    Status Record(int cacheSlot, Status status, std::string_view what);
+    /** On failure, forget the write so the next redraw resends it, and log the first one per slot. */
+    void CheckWrite(int cacheSlot, const Status& status, std::string_view what);
 
     EntitySystem& _entities;
     Visibility& _visibility;

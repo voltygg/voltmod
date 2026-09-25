@@ -40,55 +40,33 @@ int Controller::Money() const
     return money ? money.Account() : 0;
 }
 
-Status Controller::SetMoney(int amount) const
+void Controller::SetMoney(int amount) const
 {
     const Schema::CCSPlayerController_InGameMoneyServices money = InGameMoneyServices();
-    if (!money)
+    if (money)
     {
-        return std::unexpected(Error::NotReady("money services unavailable"));
+        money.SetAccount(amount);
     }
-
-    money.SetAccount(amount);
-    return {};
 }
 
-Status Controller::Kick(std::string_view reason) const
+void Controller::Kick(std::string_view reason) const
 {
-    if (!_e || !_sys)
+    if (!_e || !_sys || !_sys->Interfaces().Engine)
     {
-        return std::unexpected(Error::NotReady("no controller"));
-    }
-
-    auto* engine = _sys->Interfaces().Engine;
-    if (!engine)
-    {
-        return std::unexpected(Error::NotReady("IVEngineServer2 not available"));
+        return;
     }
 
     const std::string text(reason);
-    engine->DisconnectClient(CPlayerSlot(_slot), NETWORK_DISCONNECT_KICKED, text.c_str());
-    return {};
+    _sys->Interfaces().Engine->DisconnectClient(CPlayerSlot(_slot), NETWORK_DISCONNECT_KICKED, text.c_str());
 }
 
-Status Controller::ChangeTeam(VoltMod::Team team) const
+void Controller::ChangeTeam(VoltMod::Team team) const
 {
-    if (!_e || !_sys)
+    const bool joinable = team == Team::Spectator || IsPlaying(team);
+    if (_e && _sys && joinable && _sys->Bindings().ChangeTeam)
     {
-        return std::unexpected(Error::NotReady("no controller"));
+        _sys->Bindings().ChangeTeam(_e, std::to_underlying(team));
     }
-    if (team != Team::Spectator && !IsPlaying(team))
-    {
-        return std::unexpected(Error::Invalid("a player can only join the spectators, T or CT"));
-    }
-
-    const auto& changeTeam = _sys->Bindings().ChangeTeam;
-    if (!changeTeam)
-    {
-        return std::unexpected(Error::Unsupported("the 'CCSPlayerController::ChangeTeam' vtable slot did not bind"));
-    }
-
-    changeTeam(_e, std::to_underlying(team));
-    return {};
 }
 
 Status Controller::Respawn() const

@@ -81,10 +81,9 @@ public:
 
     /**
      * Override one client's replicated view without changing the server value. Connect and map
-     * snapshots
-     * replace the override, so resend it after spawn when persistence is required.
+     * snapshots replace the override, so resend it after spawn when persistence is required.
      */
-    Status SetFor(int slot, const T& value) const;
+    void SetFor(int slot, const T& value) const;
 
     /** Set without callbacks or networking until the returned scope is destroyed. */
     [[nodiscard]] ConVarRawScope<T> RawScope(const T& value)
@@ -101,7 +100,7 @@ private:
     friend class ConVarRawScope<T>;
     friend class ConVars;
 
-    Status SetRaw(const T& value)
+    void SetRaw(const T& value)
         requires RawConVarValue<T>;
 
     ConVars* _service = nullptr;
@@ -127,12 +126,12 @@ public:
     template <ConVarValue T>
     Result<ConVar<T>> Find(std::string_view name);
 
-    /** Queue a server console line. Returns Error::NotReady when IVEngineServer2 is unavailable. */
-    Status ExecuteServerCommand(std::string_view command);
+    /** Queue a server console line. A line with an embedded newline is refused and logged. */
+    void ExecuteServerCommand(std::string_view command);
 
     /** Run one console command as player @p slot, server-side and without a chat echo; plugins
-     *  hooking ISource2GameClients::ClientCommand see it. Refuses `;` and newlines. */
-    Status ExecuteClientCommand(int slot, std::string_view command);
+     *  hooking ISource2GameClients::ClientCommand see it. Refuses and logs `;` and newlines. */
+    void ExecuteClientCommand(int slot, std::string_view command);
 
     /**
      * @brief Assign a convar over the console, quoting the value.
@@ -141,7 +140,7 @@ public:
      * rediscovered per call site: a space would truncate the value and a `;` would start a
      * second command. A replicated payload sent straight to a client stays unquoted.
      */
-    Status SetByConsole(std::string_view name, std::string_view value);
+    void SetByConsole(std::string_view name, std::string_view value);
 
     /** All engine convar changes. The global callback exists only while this event has subscribers. */
     Event<const ConVarChange&> Changed;

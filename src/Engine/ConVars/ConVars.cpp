@@ -60,19 +60,20 @@ Status ConVars::Initialize()
     return {};
 }
 
-Status ConVars::ExecuteServerCommand(std::string_view command)
+void ConVars::ExecuteServerCommand(std::string_view command)
 {
     auto* engine = _interfaces.Engine;
     if (!engine)
     {
-        return std::unexpected(Error::NotReady("IVEngineServer2 is not available"));
+        return;
     }
 
     // A newline cannot be quoted away - it ends the line and whatever follows runs as its
     // own command - so an injected one is refused rather than escaped.
     if (command.find_first_of("\r\n") != std::string_view::npos)
     {
-        return std::unexpected(Error::Invalid("command contains an embedded newline"));
+        Log::Warn("ConVars: refused a server command with an embedded newline.");
+        return;
     }
 
     // ServerCommand adds no separator between buffered commands.
@@ -83,30 +84,23 @@ Status ConVars::ExecuteServerCommand(std::string_view command)
     }
 
     engine->ServerCommand(line.c_str());
-    return {};
 }
 
-Status ConVars::ExecuteClientCommand(int slot, std::string_view command)
+void ConVars::ExecuteClientCommand(int slot, std::string_view command)
 {
     auto* cvar = _interfaces.CVar;
     auto* clients = _interfaces.ServerGameClients;
-    if (!cvar || !clients)
+    if (!cvar || !clients || !IsValidSlot(slot))
     {
-        return std::unexpected(Error::NotReady("ICvar or ISource2GameClients is not available"));
-    }
-    if (!IsValidSlot(slot))
-    {
-        return std::unexpected(Error::Invalid(std::format("slot {} is not a player slot", slot)));
-    }
-    if (command.empty() || command.find_first_of(";\r\n") != std::string_view::npos)
-    {
-        return std::unexpected(Error::Invalid("a client command must be one non-empty command"));
+        return;
     }
 
     CCommand args;
-    if (!args.Tokenize(CUtlString(std::string(command).c_str())) || args.ArgC() == 0)
+    if (command.empty() || command.find_first_of(";\r\n") != std::string_view::npos ||
+        !args.Tokenize(CUtlString(std::string(command).c_str())) || args.ArgC() == 0)
     {
-        return std::unexpected(Error::Invalid(std::format("cannot tokenize '{}'", command)));
+        Log::Warn("ConVars: refused client command '{}'; it must be one non-empty command.", command);
+        return;
     }
 
     ConCommandRef registered = cvar->FindConCommand(args.Arg(0));
@@ -118,12 +112,11 @@ Status ConVars::ExecuteClientCommand(int slot, std::string_view command)
     {
         clients->ClientCommand(CPlayerSlot(slot), args);
     }
-    return {};
 }
 
-Status ConVars::SetByConsole(std::string_view name, std::string_view value)
+void ConVars::SetByConsole(std::string_view name, std::string_view value)
 {
-    return ExecuteServerCommand(std::format("{} {}", name, Strings::QuoteConsoleArg(value)));
+    ExecuteServerCommand(std::format("{} {}", name, Strings::QuoteConsoleArg(value)));
 }
 
 INetworkMessageInternal* ConVars::SetConVarMessage()

@@ -113,16 +113,17 @@ Status ConVar<T>::Set(const T& value)
 
     // ConVarText renders unquoted: the console path quotes in SetByConsole, while the
     // replicated payload at SendToClient below must stay unquoted.
-    return _service->SetByConsole(_name, ConVarText(value));
+    _service->SetByConsole(_name, ConVarText(value));
+    return {};
 }
 
 template <class T>
-Status ConVar<T>::SetRaw(const T& value)
+void ConVar<T>::SetRaw(const T& value)
     requires RawConVarValue<T>
 {
     if (!_storage)
     {
-        return std::unexpected(Error::NotReady("convar handle is unresolved"));
+        return;
     }
 
     const auto type = static_cast<ConVarType>(_type);
@@ -149,33 +150,23 @@ Status ConVar<T>::SetRaw(const T& value)
             break;
         }
     }
-    return {};
 }
 
 template <class T>
-Status ConVar<T>::SetFor(int slot, const T& value) const
+void ConVar<T>::SetFor(int slot, const T& value) const
 {
-    if (!_storage || !_service)
+    if (_storage && _service)
     {
-        return std::unexpected(Error::NotReady("convar handle is unresolved"));
+        _service->SendToClient(slot, _name, ConVarText(value));
     }
-
-    if (!_service->SendToClient(slot, _name, ConVarText(value)))
-    {
-        return std::unexpected(Error::Engine(std::format("could not send '{}' to slot {}", _name, slot)));
-    }
-    return {};
 }
 
 template <class T>
 ConVarRawScope<T>::ConVarRawScope(ConVar<T>& cvar, const T& value)
     requires RawConVarValue<T>
-    : _cvar(&cvar), _previous(cvar.Get())
+    : _cvar(cvar ? &cvar : nullptr), _previous(cvar.Get())
 {
-    if (!cvar.SetRaw(value))
-    {
-        _cvar = nullptr;
-    }
+    cvar.SetRaw(value);
 }
 
 template <class T>
@@ -183,7 +174,7 @@ ConVarRawScope<T>::~ConVarRawScope()
 {
     if (_cvar)
     {
-        (void)_cvar->SetRaw(_previous);
+        _cvar->SetRaw(_previous);
     }
 }
 

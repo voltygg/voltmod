@@ -100,50 +100,38 @@ void ScreenEntity::Remove()
     _written.Clear();
 }
 
-Status ScreenEntity::WriteText(int slot, std::string_view variable, std::string_view value)
+void ScreenEntity::WriteText(int slot, std::string_view variable, std::string_view value)
 {
     const auto target = CacheSlotFor(slot);
-    if (!target)
-    {
-        return std::unexpected(target.error());
-    }
     // One entity holds one layout, so the variable alone names the text.
-    if (!_written.Changed(*target, WriteKind::Text, {}, variable, value))
+    if (!target || !_written.Changed(*target, WriteKind::Text, {}, variable, value))
     {
-        return {};
+        return;
     }
 
-    return Record(*target, SendText(ContentSlotFor(*target), variable, value), variable);
+    CheckWrite(*target, SendText(ContentSlotFor(*target), variable, value), variable);
 }
 
-Status ScreenEntity::WriteClass(int slot, std::string_view elementId, std::string_view className, bool on)
+void ScreenEntity::WriteClass(int slot, std::string_view elementId, std::string_view className, bool on)
 {
     const auto target = CacheSlotFor(slot);
-    if (!target)
+    if (!target || !_written.Changed(*target, WriteKind::Class, elementId, className, on ? "1" : "0"))
     {
-        return std::unexpected(target.error());
-    }
-    if (!_written.Changed(*target, WriteKind::Class, elementId, className, on ? "1" : "0"))
-    {
-        return {};
+        return;
     }
 
-    return Record(*target, SendClass(ContentSlotFor(*target), elementId, className, on), elementId);
+    CheckWrite(*target, SendClass(ContentSlotFor(*target), elementId, className, on), elementId);
 }
 
-Status ScreenEntity::WriteCursor(int slot, bool shown)
+void ScreenEntity::WriteCursor(int slot, bool shown)
 {
     const auto target = CacheSlotFor(slot);
-    if (!target)
+    if (!target || !_written.CursorChanged(*target, shown))
     {
-        return std::unexpected(target.error());
-    }
-    if (!_written.CursorChanged(*target, shown))
-    {
-        return {};
+        return;
     }
 
-    return Record(*target, SendCursor(*target, shown), "the cursor");
+    CheckWrite(*target, SendCursor(*target, shown), "the cursor");
 }
 
 Result<int> ScreenEntity::CacheSlotFor(int slot) const
@@ -339,11 +327,11 @@ Status ScreenEntity::SendCursor(int engineSlot, bool shown)
     return {};
 }
 
-Status ScreenEntity::Record(int cacheSlot, Status status, std::string_view what)
+void ScreenEntity::CheckWrite(int cacheSlot, const Status& status, std::string_view what)
 {
     if (status || !IsValidSlot(cacheSlot))
     {
-        return status;
+        return;
     }
 
     _written.Invalidate(cacheSlot);
@@ -352,7 +340,6 @@ Status ScreenEntity::Record(int cacheSlot, Status status, std::string_view what)
         Log::Warn("Screen '{}': writing {} for slot {} failed ({}).", _layout.Name(), what, cacheSlot,
                   status.error().Detail);
     }
-    return status;
 }
 
 }  // namespace VoltMod

@@ -31,7 +31,7 @@ void ConVarOverrides::Write(std::string_view name, std::string_view value)
 {
     // A snapshot restores whatever the value was, spaces and semicolons included; SetByConsole
     // owns the quoting. Restoration is best effort during engine shutdown.
-    (void)_conVars.SetByConsole(name, value);
+    _conVars.SetByConsole(name, value);
 }
 
 }  // namespace VoltMod

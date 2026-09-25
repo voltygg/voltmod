@@ -156,7 +156,7 @@ using VoltMod::ActionDispatcher;
 using VoltMod::OptKey;
 
 const Action Slay{"s", /*RequireAlive=*/true, [](const ActionContext& ctx) -> OptKey {
-    (void)ctx.Target().Pawn().Slay();
+    ctx.Target().Pawn().Slay();
     return "broadcast.slain";        // the Policy::Broadcast callback announces it; nullopt = silent
 }};
 

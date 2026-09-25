@@ -49,14 +49,13 @@ public:
     /** The buy-menu balance; 0 when unavailable. */
     int Money() const;
 
-    /** @return Error::NotReady when the money services are unavailable. */
-    Status SetMoney(int amount) const;
+    /** Does nothing when the money services are unavailable. */
+    void SetMoney(int amount) const;
 
-    Status Kick(std::string_view reason) const;
+    void Kick(std::string_view reason) const;
 
-    /** @return Error::Invalid for a team outside Spectator..CT, Error::Unsupported when the vtable
-     *          slot did not bind. */
-    Status ChangeTeam(VoltMod::Team team) const;
+    /** Does nothing for a team outside Spectator..CT or when the vtable slot did not bind. */
+    void ChangeTeam(VoltMod::Team team) const;
 
     Status Respawn() const;
 

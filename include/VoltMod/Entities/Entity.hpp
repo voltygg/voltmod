@@ -66,9 +66,9 @@ public:
     Vector Origin() const;
     QAngle Angles() const;
 
-    /** Move the entity; std::nullopt leaves that part unchanged.
-     *  @return Error::Unsupported when the Teleport slot did not bind. */
-    Status Teleport(std::optional<Vector> origin, std::optional<QAngle> angles, std::optional<Vector> velocity) const;
+    /** Move the entity; std::nullopt leaves that part unchanged. Does nothing when the Teleport slot
+     *  did not bind. */
+    void Teleport(std::optional<Vector> origin, std::optional<QAngle> angles, std::optional<Vector> velocity) const;
 
     Schema::MoveType_t MoveType() const { return MoveTypeRaw(); }
 

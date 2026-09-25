@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <memory>
 #include <span>
@@ -16,13 +15,14 @@ namespace VoltMod
  * to their owner and remain visible while the owner is dead or spectating.
  *
  * Writes do not spawn the entity. Call @ref EnsureSpawned before drawing; it also respawns after a
- * map change. Unchanged values are not resent. Destruction removes the entity. Operations are inert
- * unless @ref ScreenManager::Available succeeds.
+ * map change. Unchanged values are not resent, and a failed write is logged once per slot and retried
+ * on the next change. Destruction removes the entity. Operations are inert unless
+ * @ref ScreenManager::Available succeeds.
  */
 class Screen
 {
 public:
-    /** Construct an empty screen. Writes return Error::NotFound until an entity is assigned. */
+    /** Construct an empty screen. Writes do nothing until an entity is assigned. */
     Screen();
     ~Screen();
 
@@ -38,18 +38,17 @@ public:
     bool EnsureSpawned(int slot);
 
     /** Set the text a `text="{s:variable}"` Label shows, for @p slot or @ref EveryoneSlot. */
-    Status SetText(int slot, std::string_view variable, std::string_view value);
+    void SetText(int slot, std::string_view variable, std::string_view value);
 
-    Status SetClass(int slot, std::string_view elementId, std::string_view className, bool on);
+    void SetClass(int slot, std::string_view elementId, std::string_view className, bool on);
 
-    Status SetHidden(int slot, std::string_view elementId, bool hidden);
+    void SetHidden(int slot, std::string_view elementId, bool hidden);
 
     /** Show @p name in the icon set @p elementId: `icon-set--<name>` on, every other of @p names off.
      *  @p names is the generated header's `IconSetNames`. */
-    Status ShowIcon(int slot, std::string_view elementId, std::span<const std::string_view> names,
-                    std::string_view name);
+    void ShowIcon(int slot, std::string_view elementId, std::span<const std::string_view> names, std::string_view name);
 
-    Status ShowCursor(int slot, bool shown);
+    void ShowCursor(int slot, bool shown);
 
     /** Remove the entity now. The next @ref EnsureSpawned creates a new one. */
     void Remove();
@@ -58,8 +57,6 @@ private:
     friend class ScreenManager;
 
     explicit Screen(std::unique_ptr<ScreenEntity> entity);
-
-    static Error Empty();
 
     std::unique_ptr<ScreenEntity> _entity;
 };

@@ -207,7 +207,7 @@ TEST_CASE("A map change message names the addon the client already downloaded")
     AddonDownloads downloads;
     downloads.Require(100);
 
-    (void)downloads.DecideJoinMessage(kPlayer, false, "", 1.0, kMaxAttempts);
+    downloads.DecideJoinMessage(kPlayer, false, "", 1.0, kMaxAttempts);
     downloads.RecordReconnect(kPlayer, 2.0, kTimeout);
 
     const auto decision = downloads.DecideJoinMessage(kPlayer, true, "", 3.0, kMaxAttempts);

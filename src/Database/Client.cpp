@@ -145,10 +145,8 @@ bool Database::Connect(const DatabaseConfig& config)
     // Verify connectivity up front so the plugin can degrade instead of queueing into the void.
     // Typed, not raw: a raw SELECT leaves an unread result set on MariaDB.
     auto ping = Run("db_ping", [](auto& conn) {
-        for (const auto& row : conn(sqlpp::select(sqlpp::value(1).as(sqlpp::alias::a))))
-        {
-            (void)row;
-        }
+        for ([[maybe_unused]] const auto& row : conn(sqlpp::select(sqlpp::value(1).as(sqlpp::alias::a))))
+        {}
     });
     if (!ping)
     {
