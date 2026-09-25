@@ -36,18 +36,18 @@ private:
     bool AttachImpl(IHost& host, char* error, size_t errorSize);
     void WriteFailure(char* error, size_t errorSize, std::string_view failure) noexcept;
 
-    void HandleServerStartup(std::string_view mapName);
-    bool HandleConsoleCommand(std::string_view name, std::string_view arguments, int slot);
+    void OnServerStartup(std::string_view mapName);
+    bool OnConsoleCommand(std::string_view name, std::string_view arguments, int slot);
     void SubscribeHostEvents();
     void Shutdown() noexcept;
 
-    void HostFrame();
-    void HostClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address);
-    void HostClientDisconnected(int slot);
-    void HostClientFullyConnected(int slot);
-    void HostClientSettingsChanged(int slot);
-    void HostCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
-    void HostBuildGameSessionManifest(IEntityResourceManifest* manifest);
+    void OnFrame();
+    void OnClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address);
+    void OnClientDisconnected(int slot);
+    void OnClientFullyConnected(int slot);
+    void OnClientSettingsChanged(int slot);
+    void OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount);
+    void OnBuildGameSessionManifest(IEntityResourceManifest* manifest);
 
     PluginFactory _factory;
     IHost* _host = nullptr;

@@ -186,25 +186,25 @@ void PluginModule::SubscribeHostEvents()
     IHostEvents& events = _host->Events();
     auto keep = [&](uint64_t token) { _hostEvents.Add(Subscription([&events, token] { events.Unsubscribe(token); })); };
 
-    keep(events.OnFrame(&HostCallback<&PluginModule::HostFrame>::Call, this));
-    keep(events.OnServerStartup(&HostCallback<&PluginModule::HandleServerStartup>::Call, this));
-    keep(events.OnClientConnected(&HostCallback<&PluginModule::HostClientConnected>::Call, this));
-    keep(events.OnClientDisconnected(&HostCallback<&PluginModule::HostClientDisconnected>::Call, this));
-    keep(events.OnClientFullyConnected(&HostCallback<&PluginModule::HostClientFullyConnected>::Call, this));
-    keep(events.OnClientSettingsChanged(&HostCallback<&PluginModule::HostClientSettingsChanged>::Call, this));
-    keep(events.OnConsoleCommand(&HostCallback<&PluginModule::HandleConsoleCommand>::Call, this));
-    keep(events.OnCheckTransmit(&HostCallback<&PluginModule::HostCheckTransmit>::Call, this));
-    keep(events.OnBuildGameSessionManifest(&HostCallback<&PluginModule::HostBuildGameSessionManifest>::Call, this));
+    keep(events.OnFrame(&HostCallback<&PluginModule::OnFrame>::Call, this));
+    keep(events.OnServerStartup(&HostCallback<&PluginModule::OnServerStartup>::Call, this));
+    keep(events.OnClientConnected(&HostCallback<&PluginModule::OnClientConnected>::Call, this));
+    keep(events.OnClientDisconnected(&HostCallback<&PluginModule::OnClientDisconnected>::Call, this));
+    keep(events.OnClientFullyConnected(&HostCallback<&PluginModule::OnClientFullyConnected>::Call, this));
+    keep(events.OnClientSettingsChanged(&HostCallback<&PluginModule::OnClientSettingsChanged>::Call, this));
+    keep(events.OnConsoleCommand(&HostCallback<&PluginModule::OnConsoleCommand>::Call, this));
+    keep(events.OnCheckTransmit(&HostCallback<&PluginModule::OnCheckTransmit>::Call, this));
+    keep(events.OnBuildGameSessionManifest(&HostCallback<&PluginModule::OnBuildGameSessionManifest>::Call, this));
 }
 
-void PluginModule::HostFrame()
+void PluginModule::OnFrame()
 {
     // `volt log` changes this; reading it once a frame lets the log helpers skip silenced lines.
     Log::SetMinimumLevel(static_cast<LogLevel>(_host->MinLogLevel()));
     _runtime->OnGameFrame();
 }
 
-void PluginModule::HandleServerStartup(std::string_view mapName)
+void PluginModule::OnServerStartup(std::string_view mapName)
 {
     Log::Info("Server startup: map '{}'.", mapName.empty() ? std::string_view("<none>") : mapName);
     _runtime->Map.SetCurrent(std::string(mapName));
@@ -214,33 +214,33 @@ void PluginModule::HandleServerStartup(std::string_view mapName)
     _plugin->OnServerStartup(mapName);
 }
 
-void PluginModule::HostClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address)
+void PluginModule::OnClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address)
 {
     _runtime->Players.Add(slot, steamId, std::string(name), std::string(address));
 }
 
-void PluginModule::HostClientDisconnected(int slot)
+void PluginModule::OnClientDisconnected(int slot)
 {
     _runtime->Players.Remove(slot);
 }
 
-void PluginModule::HostClientFullyConnected(int slot)
+void PluginModule::OnClientFullyConnected(int slot)
 {
     _runtime->Hooks.ClientConVars.OnClientFullyConnect(slot);
     _runtime->Players.OnClientFullyConnected(slot);
 }
 
-void PluginModule::HostClientSettingsChanged(int slot)
+void PluginModule::OnClientSettingsChanged(int slot)
 {
     _runtime->Players.OnClientSettingsChanged(slot);
 }
 
-void PluginModule::HostCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
+void PluginModule::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 {
     _runtime->Hooks.Visibility.OnCheckTransmit(infoList, infoCount);
 }
 
-void PluginModule::HostBuildGameSessionManifest(IEntityResourceManifest* manifest)
+void PluginModule::OnBuildGameSessionManifest(IEntityResourceManifest* manifest)
 {
     _runtime->Precache.AddTo(*manifest);
 }

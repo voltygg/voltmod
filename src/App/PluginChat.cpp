@@ -22,7 +22,7 @@ bool Plugin::OnPlayerChat(Player* player, std::string_view message, bool /*teamC
 namespace Internal
 {
 
-bool PluginModule::HandleConsoleCommand(std::string_view name, std::string_view arguments, int slot)
+bool PluginModule::OnConsoleCommand(std::string_view name, std::string_view arguments, int slot)
 {
     // A ballot for a plugin vote never reaches the engine's own vote controller.
     if (name == "vote")
