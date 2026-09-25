@@ -6,6 +6,7 @@
 #include <cstring>
 #include <entity2/entityinstance.h>
 #include <format>
+#include <khook.hpp>
 #include <vscript/ivscript.h>
 
 namespace VoltMod
@@ -73,9 +74,15 @@ static int VirtualIndex(const void* function)
 
 Result<ScriptTarget> FindScriptBinding(void* classTable, std::string_view name)
 {
-    // GetScriptDesc returns a static per class and ignores `this`, so the table stands in for an object.
-    auto* object = reinterpret_cast<CEntityInstance*>(&classTable);
-    const auto* description = static_cast<const ScriptClassDesc_t*>(object->GetScriptDesc());
+    // Call the slot, not a virtual on a fake object: GCC drops that as undefined. `this` is ignored.
+    using GetScriptDescFn = void* (*)(void* self);
+    const int slot = KHook::GetVtableIndex(&CEntityInstance::GetScriptDesc);
+    if (slot < 0)
+    {
+        return std::unexpected(Error::NotFound("no vtable slot for GetScriptDesc"));
+    }
+    const auto getScriptDesc = reinterpret_cast<GetScriptDescFn>(static_cast<void**>(classTable)[slot]);
+    const auto* description = static_cast<const ScriptClassDesc_t*>(getScriptDesc(&classTable));
     if (!description)
     {
         return std::unexpected(Error::NotFound("the class has no VScript description"));
