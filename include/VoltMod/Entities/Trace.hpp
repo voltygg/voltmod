@@ -23,6 +23,9 @@ struct TraceOptions
     /** Entities the trace passes through, such as the two pawns whose sight line is being asked. */
     Entity Ignore1;
     Entity Ignore2;
+    /** Also passes through everything this entity owns, such as the other parts of a prop built from
+     *  several; see @ref PropSpec::Owner. */
+    Entity IgnoreOwnedBy;
 };
 
 /** Where a trace stopped. */

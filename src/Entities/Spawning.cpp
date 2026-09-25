@@ -54,7 +54,17 @@ Entity EntitySystem::SpawnProp(const PropSpec& prop)
         values.Set("disableshadows", 1);
     }
 
-    Entity entity = Spawn("prop_dynamic", values);
+    if (!Available())
+    {
+        return {};
+    }
+    Entity entity = Create("prop_dynamic");
+    // The physics shapes take their owner as they are created.
+    if (prop.Owner)
+    {
+        entity.SetOwnerRef(prop.Owner);
+    }
+    entity.Spawn(values);
     // "solid" 0 alone leaves the model's hull blocking traces.
     if (entity && !prop.Solid)
     {

@@ -203,7 +203,8 @@ if (clear && *clear)
 form. `FromEyes(pawn, distance)` traces along a player's aim, ignoring the player.
 `TraceOptions::Layers` picks what stops it: `Sight` (world geometry and line-of-sight blockers, so
 windows and clips do not count) or `Solid` (what a player body collides with, other players
-included).
+included). `IgnoreOwnedBy` passes through everything an entity owns: spawn a multi-part prop with
+`PropSpec::Owner` set to its first part, and one trace ignores the whole prop.
 
 `Box` sweeps a box instead of a line. A sweep that starts and ends at one point asks whether a
 box of that size fits there:

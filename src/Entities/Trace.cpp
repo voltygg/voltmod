@@ -21,6 +21,7 @@ static CTraceFilter MakeFilter(const TraceOptions& options)
                         false);
     filter.SetPassEntity1(options.Ignore1.Raw());
     filter.SetPassEntity2(options.Ignore2.Raw());
+    filter.SetPassEntityOwner1(options.IgnoreOwnedBy.Raw());
     return filter;
 }
 

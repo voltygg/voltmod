@@ -28,6 +28,8 @@ struct PropSpec
     std::string_view Skin;
     float Scale = 1.0f;
     bool CastsShadow = true;
+    /** Set before it spawns, so a trace with @ref TraceOptions::IgnoreOwnedBy passes through it. */
+    EntityRef Owner;
 };
 
 /**
