@@ -50,7 +50,7 @@ void RegisterCommands(VoltMod::CommandManager& commands);   // defined in src/Co
 
 bool App::Load()
 {
-    if (!VoltMod::LoadStandardConfig(Runtime, Config))
+    if (!VoltMod::LoadConfig(Runtime, Config))
         return false;
 
     RegisterCommands(Runtime.Commands);
@@ -92,7 +92,7 @@ the services they point at are still alive.
 | `src/Config.hpp` | the settings struct and `ConfigManager` |
 | `configs/settings.jsonc` | operator settings |
 | `README.md` | what the plugin does, its commands and settings |
-| `configs/translations/en.json` | player-facing text |
+| `translations/en.json` | player-facing text |
 
 Add `.cpp` files anywhere under `src/`; `voltmod_add_plugin` globs them.
 
@@ -159,11 +159,11 @@ fail does not need to be a step.
 The standard prelude - settings as a required step, then translations - is one call:
 
 ```cpp
-if (!VoltMod::LoadStandardConfig(Runtime, Config))
+if (!VoltMod::LoadConfig(Runtime, Config))
     return false;
 ```
 
-It reads `addons/voltmod/plugins/<plugin>/configs/settings.jsonc` and then `configs/translations`. Pass
+It reads `addons/voltmod/plugins/<plugin>/configs/settings.jsonc` and then `translations`. Pass
 `{.SettingsFile = "configs/other.jsonc"}` or `{.Translations = false}` to change either. See
 @ref config_guide.
 
@@ -263,13 +263,14 @@ addons/
     plugins/my-plugin/
       plugin.json
       my-plugin.dll                       or my-plugin.so
-      configs/
-        settings.jsonc                    seeded once, never overwritten
-        translations/en.json
+      configs/                            the operator's: seeded once, never overwritten
+        settings.jsonc
+      translations/en.json                replaced on every install, like migrations/ and data/
 ```
 
-A plugin has no `.vdf` or `bin` directory of its own. `runtime.PluginFile("configs/x")` builds
-`addons/voltmod/plugins/<name>/configs/x` for any file the plugin reads at run time.
+A plugin has no `.vdf` or `bin` directory of its own. `runtime.PluginFile("data/x")` builds
+`addons/voltmod/plugins/<name>/data/x` for any file the plugin reads at run time. Put files an
+operator tunes under `configs/` and files the plugin ships under `data/`.
 
 `voltmod install <name>` stages and merges both trees; with no name, every plugin's.
 By hand:

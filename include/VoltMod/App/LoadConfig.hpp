@@ -11,23 +11,23 @@
 namespace VoltMod
 {
 
-/** @brief Paths and translation behavior for LoadStandardConfig. */
-struct StandardLoadOptions
+/** @brief Paths and translation behavior for LoadConfig. */
+struct LoadConfigOptions
 {
     std::string_view SettingsFile = "configs/settings.jsonc";
-    /** Whether to load configs/translations. */
+    /** Whether to load the translations directory. */
     bool Translations = true;
 };
 
 /**
- * @brief Run the standard configuration and translation load steps.
+ * @brief Load the plugin's settings, then its translations.
  *
- * The required "Configuration" step reads the plugin's @ref StandardLoadOptions::SettingsFile
+ * The required "Configuration" step reads the plugin's @ref LoadConfigOptions::SettingsFile
  * through TConfig::LoadSettings when available, otherwise Options::Load. Translation loading then
- * applies `plugin.locale` and reads the plugin's `configs/translations` directory when enabled.
+ * applies `plugin.locale` and reads the plugin's `translations` directory when enabled.
  */
 template <class TConfig>
-bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOptions& options = {})
+bool LoadConfig(Runtime& runtime, TConfig& config, const LoadConfigOptions& options = {})
 {
     const std::string path = runtime.PluginFile(options.SettingsFile);
     const bool loaded = runtime.LoadSteps.Required("Configuration", [&] {
@@ -59,7 +59,7 @@ bool LoadStandardConfig(Runtime& runtime, TConfig& config, const StandardLoadOpt
         {
             translations.SetLanguage(config.Get().plugin.locale);
         }
-        translations.Load(runtime.PluginFile("configs/translations"));
+        translations.Load(runtime.PluginFile("translations"));
     }
     return true;
 }

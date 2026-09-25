@@ -1,6 +1,6 @@
 {
   "plugin": {
-    // Translation language: a file name in configs/translations without `.json`.
+    // Translation language: a file name in translations/ without `.json`.
     "locale": "en"
   }
 }

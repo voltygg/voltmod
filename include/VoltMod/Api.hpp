@@ -1,8 +1,8 @@
 #pragma once
 
+#include <VoltMod/App/LoadConfig.hpp>
 #include <VoltMod/App/Plugin.hpp>
 #include <VoltMod/App/ServiceExchange.hpp>
-#include <VoltMod/App/StandardLoad.hpp>
 #include <VoltMod/Commands/Args.hpp>
 #include <VoltMod/Commands/CommandBuilder.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>

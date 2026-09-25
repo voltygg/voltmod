@@ -37,20 +37,20 @@ operator reads.
 ```cpp
 bool App::Load()
 {
-    return VoltMod::LoadStandardConfig(Runtime, Config);
+    return VoltMod::LoadConfig(Runtime, Config);
 }
 ```
 
-`LoadStandardConfig` runs a required `Configuration` load step that reads
-`addons/voltmod/plugins/<plugin>/configs/settings.jsonc`, then loads the plugin's `configs/translations` and
+`LoadConfig` runs a required `Configuration` load step that reads
+`addons/voltmod/plugins/<plugin>/configs/settings.jsonc`, then loads the plugin's `translations` and
 applies `plugin.locale` when the settings struct embeds @ref VoltMod::StandardPluginSettings. It
 returns false when the settings step failed, which is what aborts the load.
 
-`StandardLoadOptions` changes either half:
+`LoadConfigOptions` changes either half:
 
 ```cpp
-VoltMod::LoadStandardConfig(Runtime, Config, {.SettingsFile = "configs/other.jsonc"});
-VoltMod::LoadStandardConfig(Runtime, Config, {.Translations = false});
+VoltMod::LoadConfig(Runtime, Config, {.SettingsFile = "configs/other.jsonc"});
+VoltMod::LoadConfig(Runtime, Config, {.Translations = false});
 ```
 
 It calls your config type's `LoadSettings(path)` when it has one, otherwise `Options::Load(path)`.
@@ -68,7 +68,7 @@ class ConfigManager
 public:
     VoltMod::Status LoadSettings(std::string_view path) { return _options.Load(path); }
 
-    /** Returns the effective settings, which is what LoadStandardConfig reads plugin.locale from. */
+    /** Returns the effective settings, which is what LoadConfig reads plugin.locale from. */
     const Settings& Get() const { return _options.Get().Values; }
     const std::vector<int>& GetMenuDurations() const { return _options.Get().MenuDurationSecs; }
 
@@ -146,7 +146,7 @@ struct Settings
 
 ## Translations
 
-Player-facing text lives in per-language files under `configs/translations/` (`en.json`,
+Player-facing text lives in per-language files under `translations/` (`en.json`,
 `ru.json`, ...), flat key to string with `{token}` placeholders:
 
 ```json

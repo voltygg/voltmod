@@ -16,7 +16,7 @@ TEST_CASE("PluginDir builds the engine-relative plugin root")
 TEST_CASE("PluginFile joins the plugin root with a relative path")
 {
     CHECK(PluginFile("bhop", "configs/settings.jsonc") == "addons/voltmod/plugins/bhop/configs/settings.jsonc");
-    CHECK(PluginFile("anticheat", "configs/translations") == "addons/voltmod/plugins/anticheat/configs/translations");
+    CHECK(PluginFile("anticheat", "translations") == "addons/voltmod/plugins/anticheat/translations");
 }
 
 TEST_CASE("ResolvePath joins relative paths against the base dir and passes absolute paths through")

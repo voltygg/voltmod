@@ -90,7 +90,7 @@ TEST_CASE("A manifest with a database block for the CLI is accepted")
         "name": "admin-system",
         "version": "1.0.0",
         "database": {
-            "migrations": "configs/migrations",
+            "migrations": "migrations",
             "header": "src/Database/Tables/Schema.hpp",
             "namespace": "AdminSystem::Database::Tables"
         }

@@ -34,8 +34,8 @@ and remote, resolves dependencies, builds and runs the tests, so it is also the 
 | `uv run poe doctor` | Check tools and project configuration |
 
 Set `CS2_SERVER_PATH` to a CS2 dedicated server root, in `.env` or the environment, before
-installing. The install merges the host and the plugins into `game/csgo` and copies
-`configs/settings.jsonc` only when the server has none, so operator edits survive. Verify with
+installing. The install merges the host and the plugins into `game/csgo` and copies each
+file under a plugin's `configs/` only when the server has none, so operator edits survive. Verify with
 `volt list` on the server console.
 
 Build output is under `build/<preset>/plugins/<name>/<platform-arch>/`.

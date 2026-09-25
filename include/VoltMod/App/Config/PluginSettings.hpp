@@ -6,7 +6,7 @@
 namespace VoltMod
 {
 
-/** @brief The "plugin" section of settings.jsonc. LoadStandardConfig applies the locale. */
+/** @brief The "plugin" section of settings.jsonc. LoadConfig applies the locale. */
 struct StandardPluginSettings
 {
     std::string locale = "en";

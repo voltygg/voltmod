@@ -118,7 +118,7 @@ Name the migrations, the header and its namespace in the plugin's `plugin.json`:
 
 ```json
 "database": {
-  "migrations": "configs/migrations",
+  "migrations": "migrations",
   "header": "src/Database/Tables/Schema.hpp",
   "namespace": "MyPlugin::Database::Tables"
 }
@@ -194,7 +194,7 @@ Anything the set does not cover belongs in a driver-specific migration.
 is also how an operator applies a hand-run seed file.
 
 ```cpp
-if (!VoltMod::RunMigrations(db, "addons/voltmod/plugins/my-plugin/configs/migrations",
+if (!VoltMod::RunMigrations(db, "addons/voltmod/plugins/my-plugin/migrations",
                             {.HistoryTable = "schema_migrations", .LockKey = 727274}))
     return false;   // don't run against an out-of-date schema
 ```

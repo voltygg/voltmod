@@ -69,14 +69,15 @@ function(voltmod_add_plugin target_name)
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/plugin.json"
         DESTINATION "addons/voltmod/plugins/${target_name}" COMPONENT "${target_name}")
 
-    # settings.jsonc is rendered per server at deploy.
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/configs")
-        install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/configs/"
-            DESTINATION "addons/voltmod/plugins/${target_name}/configs"
-            COMPONENT "${target_name}"
-            PATTERN "settings.jsonc" EXCLUDE
-        )
-    endif()
+    # configs/ is left out: the installer seeds it once.
+    foreach(shipped translations migrations data)
+        if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${shipped}")
+            install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${shipped}"
+                DESTINATION "addons/voltmod/plugins/${target_name}"
+                COMPONENT "${target_name}"
+            )
+        endif()
+    endforeach()
 endfunction()
 
 # Fail at configure time on a plugin.json the host would refuse.

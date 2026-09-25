@@ -72,7 +72,7 @@ def _install_plugin(
     """
     console.section(plugin.name)
     if _install_component([project.build_dir(preset)], plugin.name, game_dir):
-        _copy_settings(plugin, game_dir)
+        _seed_configs(plugin, game_dir)
     elif named:
         raise VoltmodError(f"{plugin.name} is not built; run `voltmod build -p {preset}` first")
     else:
@@ -89,18 +89,21 @@ def _install_component(build_dirs: list[Path], component: str, game_dir: Path) -
     return False
 
 
-def _copy_settings(plugin: Plugin, game_dir: Path) -> None:
-    """Copy the shipped settings once, so an operator's edits survive every later install."""
-    source = plugin.dir / "configs/settings.jsonc"
-    if not source.is_file():
+def _seed_configs(plugin: Plugin, game_dir: Path) -> None:
+    """Copy each file under configs/ once, so an operator's edits survive every later install."""
+    configs = plugin.dir / "configs"
+    if not configs.is_dir():
         return
-    target = game_dir / plugin_dir(plugin.name) / "configs/settings.jsonc"
-    if target.is_file():
-        console.item("configs/settings.jsonc (kept the server's copy)")
-        return
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source, target)
-    console.item("configs/settings.jsonc (copied)")
+
+    for source in sorted(path for path in configs.rglob("*") if path.is_file()):
+        relative = source.relative_to(plugin.dir).as_posix()
+        target = game_dir / plugin_dir(plugin.name) / relative
+        if target.is_file():
+            console.item(f"{relative} (kept the server's copy)")
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        console.item(f"{relative} (copied)")
 
 
 def _print_staged(staging: Path) -> None:

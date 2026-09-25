@@ -25,6 +25,6 @@ seeded on the first install and never overwritten.
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
-| `plugin.locale` | `en` | Server language: a file in `configs/translations` |
+| `plugin.locale` | `en` | Server language: a file in `translations/` |
 
-Player-facing text is in `configs/translations/`.
+Player-facing text is in `translations/`.

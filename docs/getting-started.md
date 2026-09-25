@@ -65,8 +65,8 @@ Point `CS2_SERVER_PATH` at a CS2 dedicated server root, in `.env` or the environ
 uv run poe run my-plugin
 ```
 
-`run` builds, then installs the host and the plugin into `game/csgo`, copying
-`configs/settings.jsonc` only when the server does not already have one, so operator edits survive.
+`run` builds, then installs the host and the plugin into `game/csgo`, copying each
+file under `configs/` only when the server does not already have one, so operator edits survive.
 Then it launches the server. With no plugin named it installs every plugin in the repo. To do
 either step on its own:
 
