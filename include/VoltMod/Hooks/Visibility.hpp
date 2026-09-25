@@ -8,6 +8,7 @@
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/EntityRef.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
+#include <VoltMod/Engine/Team.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <array>
 #include <functional>
@@ -58,8 +59,12 @@ public:
     /** Network `entity` to `slot` alone. Calling again moves it to another slot. */
     void ShowOnlyTo(EntityRef entity, int slot);
 
-    /** Undo @ref ShowOnlyTo. Safe on unknown refs, and not needed for an entity that is being
-     *  removed: its entry goes with it. */
+    /** Keep `entity` from every client on `team`, such as a mine its victims must not see.
+     *  Calling again moves it to another team. */
+    void HideFromTeam(EntityRef entity, Team team);
+
+    /** Undo @ref ShowOnlyTo or @ref HideFromTeam. Safe on unknown refs, and not needed for an
+     *  entity that is being removed: its entry goes with it. */
     void ShowToEveryone(EntityRef entity);
 
     /** A @ref GlowVision for @p viewerSlot. Shared because the usual driver is a repeating tick
@@ -89,12 +94,17 @@ private:
         bool Any() const { return PawnHidden || ControllerHidden; }
     };
 
+    /** Sent to @ref Viewer alone, or when that is -1 to everyone off @ref HiddenFrom. */
     struct PrivateEntity
     {
         EntityRef Entity;
-        int Viewer;
+        int Viewer = -1;
+        Team HiddenFrom = Team::None;
         int Index = -1;  ///< resolved once per snapshot by OnCheckTransmit
     };
+
+    /** Replaces the entry for the same entity, or adds it. */
+    void SetPrivate(const PrivateEntity& entry);
 
     EntitySystem& _entities;
     const Bindings& _bindings;

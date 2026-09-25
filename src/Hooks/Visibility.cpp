@@ -3,6 +3,7 @@
 #include <VoltMod/Hooks/GlowVision.hpp>
 #include <VoltMod/Hooks/Visibility.hpp>
 #include <VoltMod/Schema/Api.hpp>
+#include <algorithm>
 #include <checktransmitinfo.h>
 #include <cstdint>
 #include <entity2/entityinstance.h>
@@ -146,15 +147,30 @@ void Visibility::ShowOnlyTo(EntityRef entity, int slot)
         return;
     }
 
-    for (auto& entry : _private)
+    SetPrivate({.Entity = entity, .Viewer = slot});
+}
+
+void Visibility::HideFromTeam(EntityRef entity, Team team)
+{
+    if (!entity || !IsPlaying(team))
     {
-        if (entry.Entity == entity)
-        {
-            entry.Viewer = slot;
-            return;
-        }
+        return;
     }
-    _private.push_back({.Entity = entity, .Viewer = slot});
+
+    SetPrivate({.Entity = entity, .HiddenFrom = team});
+}
+
+void Visibility::SetPrivate(const PrivateEntity& entry)
+{
+    const auto found = std::ranges::find(_private, entry.Entity, &PrivateEntity::Entity);
+    if (found != _private.end())
+    {
+        *found = entry;
+    }
+    else
+    {
+        _private.push_back(entry);
+    }
 }
 
 void Visibility::ShowToEveryone(EntityRef entity)
@@ -175,10 +191,12 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
     }
 
     // Drop entries whose entity is gone because the engine recycles indices.
+    bool anyTeamHidden = false;
     for (auto& entry : _private)
     {
         const Entity entity = _entities.Get(entry.Entity);
         entry.Index = entity ? entity.Index() : -1;
+        anyTeamHidden |= entry.HiddenFrom != Team::None;
     }
     std::erase_if(_private, [](const PrivateEntity& e) { return e.Index <= 0; });
 
@@ -209,6 +227,7 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 
         const int recipient = static_cast<int>(_bindings.VisibilityRecipientSlot.Read(info));
         CEntityInstance* observed = hiddenCount > 0 ? ObserverTarget(_entities, recipient) : nullptr;
+        const Team recipientTeam = anyTeamHidden ? _entities.Controller(recipient).Team() : Team::None;
 
         for (int h = 0; h < hiddenCount; ++h)
         {
@@ -234,7 +253,8 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 
         for (const auto& entry : _private)
         {
-            if (entry.Viewer != recipient)
+            const bool hidden = entry.Viewer >= 0 ? entry.Viewer != recipient : entry.HiddenFrom == recipientTeam;
+            if (hidden)
             {
                 info->m_pTransmitEntity->Clear(entry.Index);
             }

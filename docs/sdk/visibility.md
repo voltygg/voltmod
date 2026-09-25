@@ -39,11 +39,13 @@ The hidden player still receives their own entities, and a client actively obser
 keeps receiving it so the spectator camera does not break. Sounds are networked separately and are
 not filtered. State clears when the slot changes hands.
 
-Any entity can also be networked to a single client, which is what per-viewer effects are built on:
+Any entity can also be networked to a single client, which is what per-viewer effects are built on,
+or kept from one team:
 
 ```cpp
-visibility.ShowOnlyTo(entity.Ref(), viewerSlot);  // only this client receives it
-visibility.ShowToEveryone(entity.Ref());          // networked normally again
+visibility.ShowOnlyTo(entity.Ref(), viewerSlot);    // only this client receives it
+visibility.HideFromTeam(entity.Ref(), Team::CT);    // no client on that team receives it
+visibility.ShowToEveryone(entity.Ref());            // networked normally again
 ```
 
 Entries are keyed by @ref VoltMod::EntityRef, so an entry whose entity is gone drops itself and
