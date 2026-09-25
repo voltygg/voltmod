@@ -12,7 +12,7 @@ DIALOG_VARIABLE = re.compile(r"^\{s:(\w+)\}$")
 # One class of a BEM `block--modifier` or `block__element--modifier` set.
 MODIFIER_CLASS = re.compile(r"^([A-Za-z_]\w*(?:-\w+)*)--(\w+(?:-\w+)*)$")
 SELECTOR_CLASS = re.compile(r"\.([A-Za-z0-9_-]+)")
-IMAGE_SOURCE = re.compile(r"^s2r://panorama/images/([^/]+)/([^/]+)\.vtex$")
+IMAGE_SOURCE = re.compile(r"^s2r://panorama/images/custom_game/([^/]+)/([^/]+)\.vtex$")
 
 # Blocks whose modifiers C++ picks exactly one of, so the header lists their names.
 CHOICE_BLOCKS = ("icon-set", "bar")

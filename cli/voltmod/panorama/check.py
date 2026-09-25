@@ -49,7 +49,7 @@ def check_screens(root: Path, names: list[str] | None = None) -> list[CheckResul
         renderer = ScreenRenderer(plugin, all_plugins)
         for icon_set, icons in renderer.icons.items():
             for icon in icons:
-                resource = f"images/{icon_set}/{icon}.*"
+                resource = f"images/custom_game/{icon_set}/{icon}.*"
                 problems += _claim_resource(resource, plugin, claimed)
         for source in screen_templates(plugin):
             problems += _check_screen(renderer, source, claimed, names_by_screen)
@@ -185,7 +185,7 @@ def _check_images(plugin: Plugin, screen: Screen, source: Path) -> list[str]:
         if not match:
             problems.append(
                 f"{source}: Image src '{src}' is neither "
-                "s2r://panorama/images/<set>/<name>.vtex "
+                "s2r://panorama/images/custom_game/<set>/<name>.vtex "
                 "nor a game icon under s2r://panorama/images/icons/"
             )
         elif not icon_path(plugin, *match.groups()).is_file():

@@ -22,6 +22,7 @@ from voltmod.panorama.layout import (
     read_screen,
 )
 from voltmod.panorama.sources import (
+    ADDON_IMAGES_DIR,
     BUILD_DIR,
     IMAGES_DIR,
     LAYOUT_SUFFIX,
@@ -165,7 +166,7 @@ class ScreenRenderer:
         if icon_set not in self.icons:
             raise TemplateRuntimeError(f"no PNGs under {IMAGES_DIR}/{icon_set}/")
         return [
-            (name, f"s2r://panorama/{IMAGES_DIR}/{icon_set}/{name}.vtex")
+            (name, f"s2r://panorama/{ADDON_IMAGES_DIR}/{icon_set}/{name}.vtex")
             for name in self.icons[icon_set]
         ]
 
@@ -175,8 +176,8 @@ class ScreenRenderer:
         files: dict[Path, str | bytes] = {}
         for icon_set, names in self.icons.items():
             for name in names:
-                png = target / IMAGES_DIR / icon_set / f"{name}.png"
-                source = f"panorama/{IMAGES_DIR}/{icon_set}/{name}.png"
+                png = target / ADDON_IMAGES_DIR / icon_set / f"{name}.png"
+                source = f"panorama/{ADDON_IMAGES_DIR}/{icon_set}/{name}.png"
                 files[png] = icon_path(self.plugin, icon_set, name).read_bytes()
                 files[png.with_suffix(".vtex")] = descriptor.render(source=source)
         return files

@@ -15,17 +15,17 @@ def test_a_screen_renders_its_layout_styles_icons_and_header(make_screen_project
     assert set(written) == {
         out / "layout/custom_game/hud.xml",
         out / "styles/custom_game/hud.css",
-        out / "images/weapons/ak47.png",
-        out / "images/weapons/ak47.vtex",
+        out / "images/custom_game/weapons/ak47.png",
+        out / "images/custom_game/weapons/ak47.vtex",
         root / "build/panorama/ui-lab/include/Ui/Hud.hpp",
     }
     assert 'id="hud_slot0"' in xml and "{s:slot0_label}" in xml
-    assert 'src="s2r://panorama/images/weapons/ak47.vtex"' in xml
+    assert 'src="s2r://panorama/images/custom_game/weapons/ak47.vtex"' in xml
     assert ".button__label" in css and "color: #e8e6e0;" in css
     assert ".icon-set--ak47 .icon-set__icon--ak47 {\n  visibility: visible;\n}" in css
-    vtex = (out / "images/weapons/ak47.vtex").read_text(encoding="utf-8")
+    vtex = (out / "images/custom_game/weapons/ak47.vtex").read_text(encoding="utf-8")
     assert vtex.startswith("<!-- dmx encoding")
-    assert '"panorama/images/weapons/ak47.png"' in vtex
+    assert '"panorama/images/custom_game/weapons/ak47.png"' in vtex
 
 
 HUD_BLOCKS_XML = """{% import "card.xml.j2" as cards %}
@@ -85,7 +85,7 @@ def test_a_removed_screen_and_icon_leave_nothing_rendered(make_screen_project):
     out = root / "build/panorama/ui-lab"
     assert not (out / "panorama/layout/custom_game/old.xml").exists()
     assert not (out / "panorama/styles/custom_game/old.css").exists()
-    assert not (out / "panorama/images/weapons/m4a1.vtex").exists()
+    assert not (out / "panorama/images/custom_game/weapons/m4a1.vtex").exists()
     assert not (out / "include/Ui/Old.hpp").exists()
     assert (out / "panorama/layout/custom_game/hud.xml").is_file()
 

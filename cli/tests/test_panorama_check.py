@@ -58,7 +58,7 @@ RULES = [
         "skip an index or differ",
     ),
     (
-        screen('<Image src="s2r://panorama/images/weapons/missing.vtex" />'),
+        screen('<Image src="s2r://panorama/images/custom_game/weapons/missing.vtex" />'),
         "has no weapons/missing.png",
     ),
     (

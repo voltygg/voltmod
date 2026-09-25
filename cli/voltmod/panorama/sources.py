@@ -6,6 +6,8 @@ from voltmod.project import Plugin, Project
 BUILD_DIR = "build/panorama"
 SCREENS_DIR = "screens"
 IMAGES_DIR = "images"
+# Where the images land in panorama/: the Workshop Manager packs images only under custom_game.
+ADDON_IMAGES_DIR = f"{IMAGES_DIR}/custom_game"
 LAYOUT_SUFFIX = ".xml.j2"
 STYLESHEET_SUFFIX = ".css.j2"
 
@@ -60,5 +62,5 @@ def icon_sets(plugin: Plugin) -> dict[str, list[str]]:
 
 
 def icon_path(plugin: Plugin, icon_set: str, name: str) -> Path:
-    """The PNG behind `s2r://panorama/images/<set>/<name>.vtex`."""
+    """The PNG behind `s2r://panorama/images/custom_game/<set>/<name>.vtex`."""
     return plugin.panorama_dir / IMAGES_DIR / icon_set / f"{name}.png"

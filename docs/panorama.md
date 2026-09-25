@@ -90,7 +90,7 @@ The client validates markup and reports failures only in the client console, so
   press is lost. Make them siblings and size them side by side.
 - Every id is unique and starts with `<screen>_`, except the outermost one, which is the screen
   name itself.
-- An `<Image src>` is either a game icon or a real PNG under `images/<set>/`.
+- An `<Image src>` is either a game icon or a real PNG under the owner's `images/<set>/`.
 
 For reliable clicks, every panel on the path to a `Button` needs a resolved size (`width: 100%`, a
 fixed value, or `fill-parent-flow`); a container left to size itself around its children renders
@@ -144,7 +144,7 @@ voltmod panorama compile --no-deploy         # compile only, leave the client al
 It finds the client through Steam's library list; set `CS2_CLIENT_PATH` in `.env` or pass
 `--client` when that guess is wrong. Sources are staged into `content/csgo_addons/voltmod/`,
 compiled to `game/csgo_addons/voltmod/`, and the compiled resources copied into
-`csgo/panorama/{layout,styles}/custom_game/` and `csgo/panorama/images/<set>/`. Reconnect to see
+`csgo/panorama/{layout,styles,images}/custom_game/`. Reconnect to see
 the change; no addon is required for your own client.
 
 ## Build tree outputs
@@ -152,8 +152,8 @@ the change; no addon is required for your own client.
 ```text
 build/panorama/<owner>/panorama/layout/custom_game/<name>.xml
 build/panorama/<owner>/panorama/styles/custom_game/<name>.css
-build/panorama/<owner>/panorama/images/<set>/<icon>.png
-build/panorama/<owner>/panorama/images/<set>/<icon>.vtex
+build/panorama/<owner>/panorama/images/custom_game/<set>/<icon>.png
+build/panorama/<owner>/panorama/images/custom_game/<set>/<icon>.vtex
 build/panorama/<owner>/include/Ui/<Pascal>.hpp
 ```
 
@@ -237,9 +237,10 @@ header spells them as C++ names.
 ## Images and icon sets {#panorama_guide_images}
 
 Drop PNGs in an owner's `panorama/images/<set>/`, referenced as
-`s2r://panorama/images/<set>/<name>.vtex`. Name a set for its owner (`stronghold`, not
-`icons`): a set shares the client's `panorama/images/` with the game's own folders, and one of the
-same name replaces them. `png_icons("weapons")` gives the set as `(name, src)` pairs, one per PNG
+`s2r://panorama/images/custom_game/<set>/<name>.vtex`. They compile under `images/custom_game/`
+because the Workshop Manager packs no other image folder: an image elsewhere works from loose files
+on your own client and is missing for everyone who downloads the addon. Name a set for its owner
+(`stronghold`, not `weapons`): every addon's sets share `custom_game/`. `png_icons("weapons")` gives the set as `(name, src)` pairs, one per PNG
 in file-name order, which is what the `icons` block and `show_rules` take. Rendering copies each PNG
 into the build tree and writes a matching `.vtex` descriptor beside it - `resourcecompiler` compiles
 the descriptor, never the PNG.
