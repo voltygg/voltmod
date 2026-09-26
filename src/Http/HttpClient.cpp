@@ -1,240 +1,137 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Http/HttpClient.hpp>
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cpr/cpr.h>
 #include <deque>
 #include <functional>
 #include <future>
+#include <iterator>
 #include <utility>
+#include <vector>
 
 namespace VoltMod
 {
 
-static cpr::Header ParseHeaderLines(const std::vector<std::string>& headers)
+static constexpr size_t MaxRunning = 4;
+
+struct RunningRequest
 {
-    cpr::Header header;
-    for (const auto& line : headers)
-    {
-        const size_t colon = line.find(':');
-        if (colon == std::string::npos)
-        {
-            continue;
-        }
-        size_t valueStart = colon + 1;
-        while (valueStart < line.size() && line[valueStart] == ' ')
-        {
-            ++valueStart;
-        }
-        header[line.substr(0, colon)] = line.substr(valueStart);
-    }
-    return header;
-}
+    std::future<HttpResult> Result;
+    HttpCompletion OnComplete;
+};
 
-static HttpResult ToHttpResult(cpr::Response&& response)
+struct WaitingRequest
 {
-    HttpResult result;
-    if (response.error)
-    {
-        result.Error = response.error.message;
-    }
-    else
-    {
-        result.Ok = true;
-        result.StatusCode = static_cast<long>(response.status_code);
-        result.Body = std::move(response.text);
-    }
-    return result;
-}
+    std::function<HttpResult()> Run;
+    HttpCompletion OnComplete;
+};
 
-struct HttpClient::Impl
+struct HttpClient::Requests
 {
-    struct Pending
-    {
-        std::future<HttpResult> Result;
-        HttpCompletion OnComplete;
-    };
-
-    struct Queued
-    {
-        std::function<HttpResult()> Task;
-        HttpCompletion OnComplete;
-    };
-
-    /** Maximum number of worker requests. Additional requests wait in the queue. */
-    static constexpr size_t MaxInFlight = 4;
-
-    std::vector<Pending> Items;
-    std::deque<Queued> Waiting;
-
-    /** Set by Stop to abort transfers from their progress callbacks, and never cleared: once
-     *  stopped the client stays stopped, because a load cycle that is tearing down must not
-     *  start another thread that could return into an unmapped DLL. Shared with the workers,
-     *  which may outlive this Impl by the moment it takes them to notice. */
-    std::shared_ptr<std::atomic_bool> Cancelled = std::make_shared<std::atomic_bool>(false);
-
-    /** Queued requests are started only by StartWaiting, which enforces the in-flight cap. */
-    void Launch(Queued&& queued)
-    {
-        Waiting.push_back(std::move(queued));
-        StartWaiting();
-    }
+    std::vector<RunningRequest> Running;
+    std::deque<WaitingRequest> Waiting;
+    std::atomic_bool Stopped = false;  // never cleared: a stopped client belongs to an unloading plugin
 
     void StartWaiting()
     {
-        while (!Waiting.empty() && Items.size() < MaxInFlight)
+        while (!Waiting.empty() && Running.size() < MaxRunning)
         {
-            Queued next = std::move(Waiting.front());
+            WaitingRequest next = std::move(Waiting.front());
             Waiting.pop_front();
-            Items.push_back({std::async(std::launch::async, std::move(next.Task)), std::move(next.OnComplete)});
+            Running.push_back({std::async(std::launch::async, std::move(next.Run)), std::move(next.OnComplete)});
         }
     }
 };
 
+static HttpResult ToResult(cpr::Response&& response)
+{
+    if (response.error)
+    {
+        return {.Error = std::move(response.error.message)};
+    }
+    return {.Ok = true, .StatusCode = static_cast<long>(response.status_code), .Body = std::move(response.text)};
+}
+
+/** Runs on a worker thread, so it touches nothing but the request. */
+static HttpResult Perform(const HttpRequest& request, const std::atomic_bool& stopped)
+{
+    const cpr::Url url{request.Url};
+    const cpr::Header headers(request.Headers.begin(), request.Headers.end());
+    const cpr::Timeout timeout{std::chrono::milliseconds{request.TimeoutMs}};
+    // Returning false aborts the transfer, so Stop does not wait out a stalled endpoint's timeout.
+    const cpr::ProgressCallback progress{[&stopped](auto&&...) { return !stopped; }};
+
+    switch (request.Method)
+    {
+    case HttpMethod::Get:
+        return ToResult(cpr::Get(url, headers, timeout, progress));
+    case HttpMethod::Post:
+        return ToResult(cpr::Post(url, cpr::Body{request.Body}, headers, timeout, progress));
+    case HttpMethod::Put:
+        return ToResult(cpr::Put(url, cpr::Body{request.Body}, headers, timeout, progress));
+    case HttpMethod::Patch:
+        return ToResult(cpr::Patch(url, cpr::Body{request.Body}, headers, timeout, progress));
+    case HttpMethod::Delete:
+        return ToResult(cpr::Delete(url, cpr::Body{request.Body}, headers, timeout, progress));
+    }
+    return {.Error = "unsupported HTTP method"};
+}
+
 HttpClient::HttpClient(Scheduler& scheduler)
-    : _impl(std::make_unique<Impl>()), _onFrame(scheduler.EveryFrame([this] { DispatchCompletions(); }))
+    : _requests(std::make_unique<Requests>()), _onFrame(scheduler.EveryFrame([this] { RunCompletions(); }))
 {}
 
-// Destruction joins workers so they cannot call into an unmapped plugin. Stop() is idempotent.
 HttpClient::~HttpClient()
 {
     Stop();
 }
 
-void HttpClient::Stop()
-{
-    // Ask in-flight transfers to abort before waiting on them. std::async's future blocks on
-    // destruction regardless, so without this a single stalled endpoint holds unload for the
-    // whole request timeout.
-    _impl->Cancelled->store(true, std::memory_order_relaxed);
-
-    // Join workers during plugin unload, then discard completions they did not deliver. This keeps
-    // volt reload from leaving threads pointing into the unmapped DLL.
-    for (auto& p : _impl->Items)
-    {
-        p.Result.wait();
-    }
-    _impl->Items.clear();
-    _impl->Waiting.clear();  // never started, so nothing to wait on
-}
-
 void HttpClient::Send(HttpRequest request, HttpCompletion onComplete)
 {
-    if (_impl->Cancelled->load(std::memory_order_relaxed))
+    if (_requests->Stopped)
     {
-        // Dropped rather than queued: the completion would have nowhere safe to run.
-        Log::Warn("http: dropping request to '{}' - the client is stopped.", request.Url);
+        Log::Warn("http: dropped a request to '{}' because the client is stopped.", request.Url);
         return;
     }
 
-    // The worker touches only CPR + strings, never engine state; the callback is replayed on the
-    // game thread in DispatchCompletions().
-    auto task = [request = std::move(request), cancelled = _impl->Cancelled]() -> HttpResult {
-        const cpr::Url url{request.Url};
-        const cpr::Header headers = ParseHeaderLines(request.Headers);
-        const cpr::Timeout timeout{std::chrono::milliseconds{request.TimeoutMs}};
-
-        // Returning false from the progress callback aborts the transfer, which is what lets
-        // Stop() interrupt a request that would otherwise run to its timeout.
-        const cpr::ProgressCallback progress{
-            [cancelled](cpr::cpr_pf_arg_t, cpr::cpr_pf_arg_t, cpr::cpr_pf_arg_t, cpr::cpr_pf_arg_t, intptr_t) {
-                return !cancelled->load(std::memory_order_relaxed);
-            }};
-
-        switch (request.Method)
-        {
-        case HttpMethod::Get:
-            return ToHttpResult(cpr::Get(url, headers, timeout, progress));
-        case HttpMethod::Post:
-            return ToHttpResult(cpr::Post(url, cpr::Body{request.Body}, headers, timeout, progress));
-        case HttpMethod::Put:
-            return ToHttpResult(cpr::Put(url, cpr::Body{request.Body}, headers, timeout, progress));
-        case HttpMethod::Patch:
-            return ToHttpResult(cpr::Patch(url, cpr::Body{request.Body}, headers, timeout, progress));
-        case HttpMethod::Delete:
-            return ToHttpResult(cpr::Delete(url, cpr::Body{request.Body}, headers, timeout, progress));
-        }
-
-        return {.Error = "unsupported HTTP method"};
-    };
-
-    _impl->Launch({std::move(task), std::move(onComplete)});
+    // Stop joins every worker before _requests goes away, so the flag outlives them.
+    auto run = [request = std::move(request), &stopped = _requests->Stopped] { return Perform(request, stopped); };
+    _requests->Waiting.push_back({std::move(run), std::move(onComplete)});
+    _requests->StartWaiting();
 }
 
-void HttpClient::Get(std::string url, HttpCompletion onComplete, std::vector<std::string> headers, long timeoutMs)
+void HttpClient::Stop()
 {
-    Send({.Method = HttpMethod::Get, .Url = std::move(url), .Headers = std::move(headers), .TimeoutMs = timeoutMs},
-         std::move(onComplete));
-}
-
-void HttpClient::Post(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers,
-                      long timeoutMs)
-{
-    Send({.Method = HttpMethod::Post,
-          .Url = std::move(url),
-          .Body = std::move(body),
-          .Headers = std::move(headers),
-          .TimeoutMs = timeoutMs},
-         std::move(onComplete));
-}
-
-void HttpClient::Put(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers,
-                     long timeoutMs)
-{
-    Send({.Method = HttpMethod::Put,
-          .Url = std::move(url),
-          .Body = std::move(body),
-          .Headers = std::move(headers),
-          .TimeoutMs = timeoutMs},
-         std::move(onComplete));
-}
-
-void HttpClient::Patch(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers,
-                       long timeoutMs)
-{
-    Send({.Method = HttpMethod::Patch,
-          .Url = std::move(url),
-          .Body = std::move(body),
-          .Headers = std::move(headers),
-          .TimeoutMs = timeoutMs},
-         std::move(onComplete));
-}
-
-void HttpClient::Delete(std::string url, HttpCompletion onComplete, std::vector<std::string> headers, long timeoutMs)
-{
-    Send({.Method = HttpMethod::Delete, .Url = std::move(url), .Headers = std::move(headers), .TimeoutMs = timeoutMs},
-         std::move(onComplete));
-}
-
-void HttpClient::DispatchCompletions()
-{
-    auto& items = _impl->Items;
-
-    // Collect ready completions and compact the list *before* invoking callbacks: a callback may
-    // re-enter Post() and append to items.
-    std::vector<Impl::Pending> ready;
-    for (auto it = items.begin(); it != items.end();)
+    _requests->Stopped = true;
+    for (RunningRequest& request : _requests->Running)
     {
-        if (it->Result.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-        {
-            ready.push_back(std::move(*it));
-            it = items.erase(it);
-        }
-        else
-        {
-            ++it;
-        }
+        request.Result.wait();
     }
+    _requests->Running.clear();
+    _requests->Waiting.clear();
+}
 
-    // Start whatever was waiting on a slot before running callbacks, so a queued request is not
-    // held back by however long the completions take.
-    _impl->StartWaiting();
+void HttpClient::RunCompletions()
+{
+    // Take the finished requests out first: a completion may Send and grow the list.
+    auto& running = _requests->Running;
+    const auto finished = std::ranges::stable_partition(running, [](const RunningRequest& request) {
+        return request.Result.wait_for(std::chrono::seconds(0)) != std::future_status::ready;
+    });
+    std::vector<RunningRequest> done(std::make_move_iterator(finished.begin()),
+                                     std::make_move_iterator(finished.end()));
+    running.erase(finished.begin(), finished.end());
 
-    for (auto& p : ready)
+    // Before the completions, so a waiting request does not wait on them too.
+    _requests->StartWaiting();
+
+    for (RunningRequest& request : done)
     {
-        if (p.OnComplete)
+        if (request.OnComplete)
         {
-            p.OnComplete(p.Result.get());
+            request.OnComplete(request.Result.get());
         }
     }
 }

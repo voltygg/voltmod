@@ -5,46 +5,32 @@
 ```cpp
 #include <VoltMod/Api.hpp>
 
-runtime.Http.Post(
-    url, body,
-    [](const VoltMod::HttpResult& result) {
-        // Game thread: safe to touch players, menus, managers.
-        if (!result.IsSuccess())
-            Log::Warn("request failed: {} ({})", result.Error, result.StatusCode);
-    },
-    {"Content-Type: application/json"}, 8000);
-```
-
-`runtime.Http` runs requests off the game thread and replays completions on it, through a
-per-frame subscription the client registers for itself. `Get`, `Post`, `Put`, `Patch` and
-`Delete` all take `(url[, body], onComplete, headers = {}, timeoutMs = 8000)` and are
-conveniences over `Send`. The runtime aborts in-flight requests during shutdown, so a plugin
-needs no HTTP cleanup of its own; requests sent after that are dropped and their completions
-never run.
-
-@ref VoltMod::HttpResult carries `Ok`, `StatusCode`, `Body` and `Error`. `Ok` is transport
-success alone - a 404 answered, so it is `true`. `IsSuccess()` is `Ok` and a 2xx status.
-
-For any other request shape, fill an @ref VoltMod::HttpRequest and call `Send`:
-
-```cpp
 VoltMod::HttpRequest request{
-    .Method = VoltMod::HttpMethod::Patch,
+    .Method = VoltMod::HttpMethod::Post,
     .Url = url,
     .Body = body.dump(),
+    .Headers = {{"Content-Type", "application/json"}},
     .TimeoutMs = cfg.timeoutMs,
 };
-request.AddHeader("Content-Type", "application/json");
 request.AddAuth(cfg.authHeader, cfg.authScheme, cfg.apiKey);
 
 runtime.Http.Send(std::move(request), [](const VoltMod::HttpResult& result) {
+    // Game thread: safe to touch players, menus, managers.
     if (!result.IsSuccess())
-        return;
+        Log::Warn("request failed: {} ({})", result.Error, result.StatusCode);
 });
 ```
 
-`Headers` are full `"Key: Value"` lines; `AddHeader` formats one. `AddAuth(header, scheme, key)`
-is a no-op for an empty key, so an endpoint configured without one stays unauthenticated instead
-of sending an empty credential, and an empty scheme sends the key verbatim.
+`runtime.Http` runs up to four requests at once off the game thread and runs each completion on
+the game thread on a later frame. `TimeoutMs` defaults to 8000.
 
-Do not block on a request from the game thread. Completions never run concurrently with game code.
+@ref VoltMod::HttpResult carries `Ok`, `StatusCode`, `Body` and `Error`. `Ok` means the server
+answered with any status, so a 404 is `Ok`; when it is false, `Error` says why. `IsSuccess()` is
+`Ok` with a 2xx status.
+
+`AddAuth(header, scheme, key)` sends `<scheme> <key>`, or the key alone for an empty scheme. It
+adds nothing for an empty key, so an endpoint configured without one stays unauthenticated.
+
+The runtime aborts in-flight requests when the plugin unloads, so a plugin needs no HTTP cleanup;
+requests sent after that are dropped and their completions never run. Do not block on a request
+from the game thread.

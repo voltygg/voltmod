@@ -3,10 +3,10 @@
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Http/HttpResult.hpp>
+#include <map>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace VoltMod
 {
@@ -20,89 +20,60 @@ enum class HttpMethod
     Delete,
 };
 
-/** A complete HTTP request. Headers are full "Key: Value" lines. */
 struct HttpRequest
 {
     HttpMethod Method = HttpMethod::Get;
     std::string Url;
     std::string Body;
-    std::vector<std::string> Headers;
+    std::map<std::string, std::string> Headers;
     long TimeoutMs = 8000;
 
-    /** Append one header as the "Key: Value" line the client expects. */
-    void AddHeader(std::string_view name, std::string_view value)
-    {
-        Headers.push_back(std::string(name) + ": " + std::string(value));
-    }
-
     /**
-     * Append a credential header, e.g. `AddAuth("Authorization", "Bearer", key)`. An empty
-     * @p scheme sends @p key verbatim. An empty @p key is a no-op, so an endpoint configured
-     * without one stays unauthenticated rather than sending an empty credential.
+     * Add a credential header, e.g. `AddAuth("Authorization", "Bearer", key)`; an empty @p scheme
+     * sends @p key alone. Nothing is added without a key, so an unconfigured endpoint stays
+     * unauthenticated instead of sending an empty credential.
      */
     void AddAuth(std::string_view header, std::string_view scheme, std::string_view key)
     {
-        if (key.empty())
+        if (!key.empty())
         {
-            return;
+            Headers[std::string(header)] =
+                scheme.empty() ? std::string(key) : std::string(scheme) + " " + std::string(key);
         }
-        AddHeader(header, scheme.empty() ? std::string(key) : std::string(scheme) + " " + std::string(key));
     }
 };
 
 /**
- * Async HTTP client. Requests run off the game thread (CPR's worker pool); completions are queued
- * and replayed on the game thread via `DispatchCompletions()` so callbacks may safely touch engine
- * state. No engine API may be called from a completion before that dispatch.
+ * @brief Runs HTTP requests off the game thread and their completions on it.
  *
- * The dispatch runs from a per-frame scheduler subscription the client registers for itself, so
- * nothing outside has a per-frame list to keep in sync.
+ * Up to four requests run at once, each on its own thread; the rest wait their turn. Completions
+ * run from a per-frame scheduler callback, so they may touch engine state.
  */
 class HttpClient
 {
 public:
-    /** @p scheduler must outlive the client; the per-frame subscription unregisters in the
-     *  destructor. */
+    /** @p scheduler must outlive the client. */
     explicit HttpClient(Scheduler& scheduler);
-    /** Runs @ref Stop, so a client that is merely destroyed still joins its workers. */
     ~HttpClient();
     HttpClient(const HttpClient&) = delete;
     HttpClient& operator=(const HttpClient&) = delete;
 
+    /** Run @p request; @p onComplete runs on the game thread on a later frame. Dropped after @ref Stop. */
+    void Send(HttpRequest request, HttpCompletion onComplete);
+
     /**
-     * Cancel and join any in-flight requests, then drop their (unrun) completions. Idempotent.
-     *
-     * Workers are asked to abort mid-transfer rather than merely waited on, so unload is not
-     * held for the request timeout by one stalled endpoint. After this, @ref Send drops
-     * requests instead of starting a thread into an unloading module.
+     * Abort and join the running requests and drop the waiting ones; no completion runs after this.
+     * Later sends are dropped too, so an unloading plugin never starts a thread into its own module.
      */
     void Stop();
 
-    /** Enqueue a request. `onComplete` runs on the game thread on a later dispatch, except after
-     *  @ref Stop: the request is dropped and its completion never runs, because Stop happens
-     *  during shutdown when no later dispatch is coming. */
-    void Send(HttpRequest request, HttpCompletion onComplete);
-
-    /** Convenience helpers over Send. Use Send directly for less common request shapes. */
-    void Get(std::string url, HttpCompletion onComplete, std::vector<std::string> headers = {}, long timeoutMs = 8000);
-    void Post(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers = {},
-              long timeoutMs = 8000);
-    void Put(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers = {},
-             long timeoutMs = 8000);
-    void Patch(std::string url, std::string body, HttpCompletion onComplete, std::vector<std::string> headers = {},
-               long timeoutMs = 8000);
-    void Delete(std::string url, HttpCompletion onComplete, std::vector<std::string> headers = {},
-                long timeoutMs = 8000);
-
 private:
-    /** Invoke all ready completions on the calling (game) thread. */
-    void DispatchCompletions();
+    /** Each frame: run the completions of finished requests and start waiting ones. */
+    void RunCompletions();
 
-    struct Impl;
-    std::unique_ptr<Impl> _impl;
-    /** Declared after _impl so per-frame delivery stops before the queue its callback reads
-     *  goes away. */
-    Subscription _onFrame;
+    struct Requests;
+    std::unique_ptr<Requests> _requests;
+    Subscription _onFrame;  // after _requests, so frames stop before the requests go away
 };
 
 }  // namespace VoltMod

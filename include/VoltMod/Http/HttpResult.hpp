@@ -6,18 +6,15 @@
 namespace VoltMod
 {
 
-/** Outcome of an async HTTP request. `Ok` reflects transport success, not the HTTP status. */
+/** How an HTTP request ended. */
 struct HttpResult
 {
-    bool Ok = false;
+    bool Ok = false;  ///< the server answered, with any status; when false, Error says why
     long StatusCode = 0;
     std::string Body;
-    std::string Error;  // populated when Ok == false
+    std::string Error;
 
-    /**
-     * Transport succeeded *and* the server answered 2xx. `Ok` on its own only says the request
-     * reached a server, so a 404 or 500 still has `Ok == true`.
-     */
+    /** The server answered with a 2xx status. */
     bool IsSuccess() const { return Ok && StatusCode >= 200 && StatusCode < 300; }
 };
 

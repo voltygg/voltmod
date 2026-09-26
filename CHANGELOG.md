@@ -14,6 +14,8 @@ What changed in each VoltMod release. Older history is in git.
 - Rebuild every plugin against this release: the host ABI is now 4.
 - Call `IHost::EngineInterface`, `ServerInterface` or `BaseDir` where you called `IHost::Metamod()`.
 - CMake 4.4 is required. `VOLTMOD_DISABLE_PCH` is gone; set `CMAKE_DISABLE_PRECOMPILE_HEADERS=ON` instead.
+- HTTP: send every request through `Http.Send`; the `Get`/`Post`/`Put`/`Patch`/`Delete` helpers
+  are gone, and `HttpRequest::Headers` is a name-to-value map (`AddHeader` is gone).
 
 ## 1.6.0 (2026-09-25)
 
