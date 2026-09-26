@@ -7,9 +7,9 @@ if(EXISTS "${VOLTMOD_ROOT_DIR}/addons")
     install(DIRECTORY "${VOLTMOD_ROOT_DIR}/addons/" DESTINATION "addons" COMPONENT host)
 endif()
 
-# A plugin module named by the plugin.json beside it. SOURCES defaults to src/*.cpp;
-# DATABASE adds VoltMod::Database. The entry point is generated for the <Namespace>::App that
-# src/App.hpp declares, the namespace spelled from the name: admin-system is AdminSystem.
+# Builds the plugin named in the plugin.json beside it; the generated entry point creates the
+# <Namespace>::App from src/App.hpp (admin-system -> AdminSystem).
+# SOURCES defaults to src/*.cpp; DATABASE links VoltMod::Database.
 function(voltmod_add_plugin target_name)
     cmake_parse_arguments(ARG "DATABASE" "" "SOURCES" ${ARGN})
 

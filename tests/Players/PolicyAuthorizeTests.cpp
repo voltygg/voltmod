@@ -64,8 +64,7 @@ TEST_CASE("Authorize fails with a player-facing key when the target is gone")
 }
 
 // The menu case: a row built for one player is pressed after that player left and somebody else
-// took the slot. The stored reference must be refused, not resolved to the new occupant - which
-// is why ActionDispatcher takes PlayerRef rather than re-deriving one from a slot.
+// took the slot. The stored reference must be refused, not resolved to the new occupant.
 TEST_CASE("Authorize refuses a target whose slot has been taken by somebody else")
 {
     Gate gate;

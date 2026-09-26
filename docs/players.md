@@ -102,8 +102,8 @@ halves a score every half-life and holds one value and one timestamp whatever th
 @ref VoltMod::Policy::Authorize is the one gate between framework dispatch and a plugin's
 permission and immunity rules. The runtime sets `HasPermission` to ask the plugin that publishes
 @ref VoltMod::IPermissions (admin-system), so `.Permission("x")` works in every plugin while it is
-loaded and denies while it is not. A plugin that owns permissions replaces `HasPermission`, and
-fills `CanTarget` and `Reply`, once in `Load`.
+loaded and denies while it is not. A plugin that enforces targeting or replies fills `CanTarget`
+and `Reply` once in `Load`.
 
 ```cpp
 Result<Authorized> Authorize(PlayerRef caller, std::optional<PlayerRef> target,

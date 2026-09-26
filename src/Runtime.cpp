@@ -22,7 +22,6 @@ Runtime::Runtime(IHost& host, UnsafeServices& unsafe)
       Exchange(host.Services()),
       Commands(Policy, Translations, Players, Entities, Messages, host)
 {
-    // A plugin that owns permissions (admin-system) replaces this with its own rule.
     Policy.HasPermission = [this, warned = false](int64_t steamId, std::string_view permission) mutable {
         if (auto* permissions = Exchange.Get<IPermissions>())
         {
@@ -31,7 +30,7 @@ Runtime::Runtime(IHost& host, UnsafeServices& unsafe)
         if (!warned)
         {
             warned = true;
-            Log::Warn("Denying '{}': no plugin publishes {}; load admin-system.", permission,
+            Log::Warn("Denying '{}': no plugin publishes {}.", permission,
                       IPermissions::InterfaceName);
         }
         return false;

@@ -28,12 +28,11 @@ struct Authorized
 /**
  * @brief The one permission and targeting gate, plus the plugin's reply callback.
  *
- * The runtime sets @ref HasPermission to ask the published @ref IPermissions; a plugin that owns
- * permissions replaces it, and fills the others it enforces, once in Plugin::Load. Every
- * policy-aware framework subsystem - command dispatch, target resolution, menu rows - goes
- * through @ref Authorize to reach them. An unset @ref CanTarget or @ref Reply means "no rule /
- * no callback"; an unset
- * @ref HasPermission denies, because there is then no trusted permission source.
+ * The runtime sets @ref HasPermission to ask the published @ref IPermissions; a plugin fills the
+ * others it enforces once in Plugin::Load. Every policy-aware framework subsystem - command
+ * dispatch, target resolution, menu rows - goes through @ref Authorize to reach them. An unset
+ * @ref CanTarget or @ref Reply means "no rule / no callback"; an unset @ref HasPermission denies,
+ * because there is then no trusted permission source.
  *
  * `Policy` is not assignable as a whole: it is constructed with the roster it resolves refs
  * against. Assign the members you enforce.
@@ -64,7 +63,7 @@ public:
     std::function<void(int slot, std::string_view message)> Reply;
 
     /**
-     * @brief The single gate. Commands, actions, menu rows and effects call exactly this.
+     * @brief The single gate. Commands, target resolution and menu rows call exactly this.
      *
      * Outcomes, in the order they are decided:
      *
