@@ -36,9 +36,9 @@ static HMODULE ModuleAt(const void* address)
 
 std::filesystem::path OwnPath()
 {
+    static const char inThisModule = 0;
     wchar_t path[4096];
-    const DWORD length = GetModuleFileNameW(ModuleAt(reinterpret_cast<const void*>(&CreateInterface)), path,
-                                            static_cast<DWORD>(std::size(path)));
+    const DWORD length = GetModuleFileNameW(ModuleAt(&inThisModule), path, static_cast<DWORD>(std::size(path)));
     return std::filesystem::path(path, path + length);
 }
 

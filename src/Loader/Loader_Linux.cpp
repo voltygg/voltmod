@@ -25,8 +25,10 @@ std::string LastError()
 
 std::filesystem::path OwnPath()
 {
+    // Not &CreateInterface: another module's export of that name can interpose it.
+    static const char inThisModule = 0;
     Dl_info info{};
-    dladdr(reinterpret_cast<void*>(&CreateInterface), &info);
+    dladdr(&inThisModule, &info);
     // The engine may load this by a relative path.
     return std::filesystem::absolute(info.dli_fname).lexically_normal();
 }
