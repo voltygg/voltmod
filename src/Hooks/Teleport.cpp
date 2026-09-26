@@ -19,7 +19,7 @@ Teleport::Teleport(EntitySystem& entities, const Bindings& bindings)
 
 Teleport::~Teleport()
 {
-    // A surviving subscription would call into an unloaded module after meta reload.
+    // A surviving subscription would call into an unloaded module after volt reload.
     if (!Teleported.Empty())
     {
         Log::Error("Teleport: {} subscription(s) outlived the tracker; a handler may dangle.", Teleported.Count());

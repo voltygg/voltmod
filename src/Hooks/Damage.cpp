@@ -33,7 +33,7 @@ Damage::Damage(EntitySystem& entities, const Bindings& bindings)
 
 Damage::~Damage()
 {
-    // A surviving subscription would call into an unloaded module after meta reload.
+    // A surviving subscription would call into an unloaded module after volt reload.
     if (!Before.Empty())
     {
         Log::Error("Damage: {} subscription(s) outlived the service; a handler may dangle.", Before.Count());

@@ -109,7 +109,7 @@ void HttpClient::Stop()
     _impl->Cancelled->store(true, std::memory_order_relaxed);
 
     // Join workers during plugin unload, then discard completions they did not deliver. This keeps
-    // meta reload from leaving threads pointing into the unmapped DLL.
+    // volt reload from leaving threads pointing into the unmapped DLL.
     for (auto& p : _impl->Items)
     {
         p.Result.wait();
