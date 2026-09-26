@@ -21,7 +21,7 @@ struct PluginManifest
     std::string Website;
     std::string License;
     /** The level the plugin starts at; `volt log` changes it until the next load. */
-    LogLevel LogLevel = LogLevel::Info;
+    VoltMod::LogLevel LogLevel = VoltMod::LogLevel::Info;
     std::vector<std::string> Dependencies;  ///< Required: a missing one refuses this plugin.
     /** Wanted, not needed: the plugin loads without these and reaches them through the exchange if they came. */
     std::vector<std::string> OptionalDependencies;
