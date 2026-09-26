@@ -4,7 +4,7 @@
 
 What changed in each VoltMod release. Older history is in git.
 
-## Unreleased
+## 1.7.1 (2026-09-26)
 
 ### Breaking
 
@@ -26,7 +26,6 @@ What changed in each VoltMod release. Older history is in git.
   are gone.
 - `Action`, `ActionDispatcher`, `EffectDescriptor`, `EffectDispatcher`, `EffectManager` and
   `ActionRows` left the framework, and `Policy::Broadcast` with them.
-
 - Game event structs are generated for every event: the player an event is about is `Slot`
   (`PlayerDeath::VictimSlot` and `PlayerHurt::VictimSlot` included), `PlayerHurt::Hitbox` is `Hitgroup`,
   `PlayerTeam::OldTeam` is `Oldteam`, `BulletImpact::Slot` is `ShooterSlot`, and each struct's `Name` is
@@ -44,6 +43,10 @@ What changed in each VoltMod release. Older history is in git.
 - `Messages::BroadcastKey` sends a key to every player in their own language.
 - `Args::Target` reads through `->`, and `Args::Opt::ValueOr` returns the value or a fallback.
 - `Options::Reload()` reads the settings file again.
+
+### Fixed
+
+- HTTP header names are matched ignoring case.
 
 ## 1.7.0 (2026-09-26)
 
