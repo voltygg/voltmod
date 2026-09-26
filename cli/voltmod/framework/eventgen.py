@@ -9,6 +9,7 @@ import vpk
 from voltmod.bundled import load_template
 from voltmod.errors import VoltmodError
 from voltmod.framework.paths import INCLUDE_ROOT
+from voltmod.panorama.layout import pascal_case
 
 EVENTS_HEADER = INCLUDE_ROOT / "Events/EventTypes.hpp"
 EVENTS_SOURCE = Path("src/Events/EventTypes.cpp")
@@ -37,18 +38,12 @@ VALUE_TYPES = {
     "uint64": ("uint64_t", 'e.GetUint64("{key}")', "0"),
 }
 
+TEAM = ("VoltMod::Team", 'static_cast<VoltMod::Team>(e.GetInt("{key}"))', "VoltMod::Team::None")
+
 # Keys whose number is one of the framework's enums, whatever the event.
 TYPED_KEYS = {
-    "team": (
-        "VoltMod::Team",
-        'static_cast<VoltMod::Team>(e.GetInt("{key}"))',
-        "VoltMod::Team::None",
-    ),
-    "oldteam": (
-        "VoltMod::Team",
-        'static_cast<VoltMod::Team>(e.GetInt("{key}"))',
-        "VoltMod::Team::None",
-    ),
+    "team": TEAM,
+    "oldteam": TEAM,
     # A missing hitgroup reads 0, which is HitGroup::Generic.
     "hitgroup": (
         "VoltMod::HitGroup",
@@ -128,11 +123,6 @@ def parse_keyvalues(text: str) -> list[tuple[str, object, str]]:
     return block()
 
 
-def pascal(key: str) -> str:
-    """`dmg_health` -> `DmgHealth`, `oldteam` -> `Oldteam`: split on `_`, capitalize each word."""
-    return "".join(word[:1].upper() + word[1:] for word in key.split("_") if word)
-
-
 def event_model(key: str, body: list[tuple[str, object, str]], comment: str) -> GameEvent:
     fields: list[EventField] = []
     skipped: list[str] = []
@@ -140,39 +130,41 @@ def event_model(key: str, body: list[tuple[str, object, str]], comment: str) -> 
         if field_key in FLAG_KEYS or not isinstance(game_type, str):
             continue
         if game_type in PLAYER_TYPES:
-            name = "Slot" if field_key == "userid" else pascal(field_key) + "Slot"
+            name = "Slot" if field_key == "userid" else pascal_case(field_key) + "Slot"
             field = EventField(
                 name, "int", f'e.GetPlayerSlot("{field_key}").Get()', "-1", field_comment
             )
-        elif field_key in TYPED_KEYS:
-            cpp_type, getter, default = TYPED_KEYS[field_key]
+        elif spec := TYPED_KEYS.get(field_key) or VALUE_TYPES.get(game_type):
+            cpp_type, getter, default = spec
             field = EventField(
-                pascal(field_key), cpp_type, getter.format(key=field_key), default, field_comment
-            )
-        elif game_type in VALUE_TYPES:
-            cpp_type, getter, default = VALUE_TYPES[game_type]
-            field = EventField(
-                pascal(field_key), cpp_type, getter.format(key=field_key), default, field_comment
+                pascal_case(field_key),
+                cpp_type,
+                getter.format(key=field_key),
+                default,
+                field_comment,
             )
         else:
             skipped.append(f"{field_key}: {game_type}")
             continue
-        taken = {"EventName", "From", pascal(key), *(other.name for other in fields)}
+        taken = {"EventName", "From", pascal_case(key), *(other.name for other in fields)}
         if field.name in taken:
             skipped.append(f"{field_key}: its name {field.name} is taken")
             continue
         fields.append(field)
-    return GameEvent(key, pascal(key), comment, fields, skipped)
+    return GameEvent(key, pascal_case(key), comment, fields, skipped)
 
 
 def read_events(server: Path) -> list[GameEvent]:
     """Every event the server's game files define, minus the hand-written ones."""
+    archives = {}
     texts = []
     for archive, inner in EVENT_FILES:
-        path = server / archive
-        if not path.is_file():
-            raise VoltmodError(f"{path} is missing; point CS2_SERVER_PATH at a CS2 server")
-        texts.append(vpk.open(str(path)).get_file(inner).read().decode("utf-8", errors="replace"))
+        if archive not in archives:
+            path = server / archive
+            if not path.is_file():
+                raise VoltmodError(f"{path} is missing; point CS2_SERVER_PATH at a CS2 server")
+            archives[archive] = vpk.open(str(path))
+        texts.append(archives[archive].get_file(inner).read().decode("utf-8", errors="replace"))
     return collect_events(texts)
 
 

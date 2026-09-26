@@ -1,13 +1,12 @@
 import hashlib
 import json
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from voltmod.bundled import load_template
 from voltmod.errors import VoltmodError
-from voltmod.files import write_if_changed, write_or_check
+from voltmod.files import write_or_check
 from voltmod.framework.paths import (
     GENERATED_HEADER_DIR,
     GENERATED_SOURCE_DIR,
@@ -28,7 +27,7 @@ from voltmod.framework.schemagen.model import (
     offset_constant,
 )
 from voltmod.framework.schemagen.resolve import collect_enums, resolve_classes, trimmed_dump
-from voltmod.toolchain.clang_format import CPP_SUFFIXES, format_cpp_files
+from voltmod.toolchain.clang_format import format_cpp_texts
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,27 +131,8 @@ def write_schema(repo: Path, files: dict[Path, str], platform: str, *, check: bo
     for path in stale:
         path.unlink()
 
-    for relative, text in _format_cpp(repo, files).items():
+    for relative, text in format_cpp_texts(repo, files).items():
         write_or_check(repo / relative, text, check=check)
-
-
-def _format_cpp(repo: Path, files: dict[Path, str]) -> dict[Path, str]:
-    """`files` with the C++ ones formatted by one clang-format run."""
-    scratch_parent = repo / "build"
-    scratch_parent.mkdir(exist_ok=True)
-    # Inside the repo, so clang-format finds the .clang-format the real paths would.
-    with tempfile.TemporaryDirectory(dir=scratch_parent) as scratch:
-        staged = {
-            relative: Path(scratch) / relative
-            for relative in files
-            if relative.suffix in CPP_SUFFIXES
-        }
-        for relative, path in staged.items():
-            write_if_changed(path, files[relative])
-        format_cpp_files(list(staged.values()))
-        # Bytes, so Windows newline translation cannot change what clang-format wrote.
-        formatted = {relative: path.read_bytes().decode() for relative, path in staged.items()}
-    return files | formatted
 
 
 def _render(template: str, **fields: Any) -> str:

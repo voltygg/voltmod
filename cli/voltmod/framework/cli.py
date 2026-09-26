@@ -25,7 +25,7 @@ from voltmod.platforms import Platform
 from voltmod.project import Project
 from voltmod.server.cs2_server import Cs2Server
 from voltmod.server.install import SCHEMA_DUMP
-from voltmod.toolchain.clang_format import format_cpp_files
+from voltmod.toolchain.clang_format import format_cpp_texts
 
 GameDir = Annotated[
     Path | None,
@@ -65,11 +65,8 @@ def eventgen_command(server: ServerDir = None) -> None:
     """Regenerate the game event structs from the server's .gameevents files."""
     project = Project.load()
     events = read_events(Cs2Server.open(server).root)
-    paths = []
-    for relative, text in render_events(events).items():
+    for relative, text in format_cpp_texts(project.root, render_events(events)).items():
         write_if_changed(project.root / relative, text)
-        paths.append(project.root / relative)
-    format_cpp_files(paths)
     skipped = sum(len(event.skipped) for event in events)
     console.done(f"eventgen: {len(events)} events, {skipped} fields skipped")
 
