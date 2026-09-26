@@ -11,17 +11,17 @@ Last checked: 2026-09-20.
 
 | Framework | Plugin language | Loader | Build setup | License |
 | --- | --- | --- | --- | --- |
-| VoltMod | C++23 | Metamod:Source | `voltmod new project`, Conan, and CMake | MIT |
+| VoltMod | C++23 | Its own `server_valve` loader | `voltmod new project`, Conan, and CMake | MIT |
 | [CounterStrikeSharp](https://github.com/roflmuffin/CounterStrikeSharp) | C# on .NET 8 | Metamod:Source | .NET class library | GPLv3 with a plugin exception |
 | [SwiftlyS2](https://swiftlys2.net/) | C# on .NET 10 | [SwiftlyS2 loader](https://swiftlys2.net/docs/installation/) | `dotnet new` template and `dotnet publish` | GPLv3 with a plugin exception |
 | [Plugify for Source 2](https://github.com/untrustedmodders/plugify-plugin-s2sdk) | C++, C#, Go, Python, JavaScript, Lua, Rust, D, and other language modules | Plugify with the Source 2 SDK plugin | Depends on the installed language module | Plugify is MIT; the Source 2 SDK plugin is GPLv3 |
 
 ## VoltMod
 
-VoltMod currently builds native C++23 plugins. One Metamod:Source host loads their manifests,
-checks dependencies, and handles `load`, `unload`, and `reload` commands. The framework includes
-commands, players, menus, Panorama UI, engine APIs, HTTP, three database drivers, Conan packages,
-and project tools.
+VoltMod currently builds native C++23 plugins. One host, started by its own loader with or without
+Metamod:Source, loads their manifests, checks dependencies, and handles `load`, `unload`, and
+`reload` commands. The framework includes commands, players, menus, Panorama UI, engine APIs,
+HTTP, three database drivers, Conan packages, and project tools.
 
 The host and runtime are structured to allow more language bindings later, but only the C++23 SDK
 is available today. On Windows, a loaded DLL must be unloaded before it can be replaced.
@@ -59,7 +59,7 @@ or a [Metamod loader](https://github.com/untrustedmodders/plugify-metamod-loader
 
 - VoltMod is native C++23 today and includes its build, database, Panorama, and server tools.
 - CounterStrikeSharp and SwiftlyS2 use managed C# plugins.
-- SwiftlyS2 uses its own loader; VoltMod and CounterStrikeSharp use Metamod:Source.
+- VoltMod and SwiftlyS2 use their own loaders; CounterStrikeSharp uses Metamod:Source.
 - Plugify supports several languages through separate modules.
 
 Future VoltMod language bindings are not included in this comparison until they ship with a

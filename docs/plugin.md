@@ -255,9 +255,10 @@ are different: the host removes them with the plugin and says nothing.
 
 ```text
 addons/
-  metamod/voltmod.vdf                     the host's Metamod plugin file, the server's only one
   voltmod/
-    bin/win64/voltmod.dll                 or bin/linuxsteamrt64/voltmod.so
+    bin/win64/                            or bin/linuxsteamrt64/
+      server_valve.dll                    the loader; libserver_valve.so on Linux
+      voltmod.dll                         the host; voltmod.so on Linux
     gamedata/gamedata.jsonc
     schema/server.json                    written by the server once a map has run
     plugins/my-plugin/
@@ -268,7 +269,7 @@ addons/
       translations/en.json                replaced on every install, like migrations/ and data/
 ```
 
-A plugin has no `.vdf` or `bin` directory of its own. `runtime.PluginFile("data/x")` builds
+A plugin has no `bin` directory of its own. `runtime.PluginFile("data/x")` builds
 `addons/voltmod/plugins/<name>/data/x` for any file the plugin reads at run time. Put files an
 operator tunes under `configs/` and files the plugin ships under `data/`.
 
@@ -280,4 +281,6 @@ cmake --install build/<preset> --component host      --prefix dist
 cmake --install build/<preset> --component my-plugin --prefix dist
 ```
 
-then copy `dist/addons` into `game/csgo`, leaving operator-edited settings alone.
+then copy `dist/addons` into `game/csgo`, leaving operator-edited settings alone, and put
+`Game csgo/addons/voltmod` directly above `Game csgo` in `gameinfo.gi` so the engine finds the
+loader. `voltmod serve` and `voltmod run` add that line themselves.

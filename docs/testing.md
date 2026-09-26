@@ -2,8 +2,8 @@
 
 [TOC]
 
-Unit tests use [doctest](https://github.com/doctest/doctest) and stay SDK-free: no Metamod, no
-HL2SDK, no live `Runtime`, entity or database connection. Test logic that takes plain values and
+Unit tests use [doctest](https://github.com/doctest/doctest) and stay SDK-free: no HL2SDK, no
+live `Runtime`, entity or database connection. Test logic that takes plain values and
 returns plain values - parsers, the target-selector grammar, angle math, decaying scores,
 throttles, detector heuristics. Keep that logic in free functions over structs and the rest
 follows.
@@ -147,8 +147,8 @@ voltmod_add_tests(myplugin-tests
 | `DATABASE` | also link `VoltMod::Database`, so a test can open a SQLite database and run the plugin's migrations |
 | `DEFINITIONS` | compile definitions for the test target |
 
-Test binaries never link the plugin module or `VoltMod::Sdk`, so nothing drags in Metamod. The
-Conan side is one line in `conanfile.py`:
+Test binaries never link the plugin module or `VoltMod::Sdk`, so nothing drags in the game SDK.
+The Conan side is one line in `conanfile.py`:
 
 ```python
 def build_requirements(self):
@@ -159,9 +159,9 @@ def build_requirements(self):
 
 Each `Api.hpp` aggregate must compile as the only VoltMod include in a translation unit, and
 `RootApiSurfaceTest.cpp` checks that the main umbrella pulls in neither the JSON layer nor the
-menu-building surface. These are compile-only, and they need the full HL2SDK and Metamod build, so
-they live in `tests/Api/` and compile into `voltmod-api-surface-check` - an object library in the
-root `CMakeLists.txt` linked against `VoltMod::Sdk` and `VoltMod::Database`.
+menu-building surface. These are compile-only, and they need the full HL2SDK build, so they live
+in `tests/Api/` and compile into `voltmod-api-surface-check` - an object library in the root
+`CMakeLists.txt` linked against `VoltMod::Sdk` and `VoltMod::Database`.
 
 ## Module layering and source conventions
 

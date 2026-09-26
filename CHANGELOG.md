@@ -4,6 +4,16 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## Unreleased
+
+### Breaking
+
+- Put `Game csgo/addons/voltmod` directly above `Game csgo` in `gameinfo.gi` (`voltmod serve` and
+  `voltmod run` add it) and delete `addons/metamod/voltmod.vdf`: the engine now loads the framework
+  as `server_valve`, and Metamod is optional.
+- Rebuild every plugin against this release: the host ABI is now 4.
+- Call `IHost::EngineInterface`, `ServerInterface` or `BaseDir` where you called `IHost::Metamod()`.
+
 ## 1.6.0 (2026-09-25)
 
 ### Breaking

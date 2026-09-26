@@ -1,7 +1,7 @@
 [project]
 name = "$project"
 version = "1.0.0"
-description = "CS2 Metamod plugins built on voltmod"
+description = "CS2 plugins built on voltmod"
 readme = "README.md"
 requires-python = ">=3.14"
 

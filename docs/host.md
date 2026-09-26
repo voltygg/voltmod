@@ -2,9 +2,9 @@
 
 [TOC]
 
-The host is the server's only Metamod plugin. It installs the engine hooks once, loads every
-plugin it finds under `addons/voltmod/plugins/*/plugin.json`, and offers each engine event to them in load order.
-`meta list` shows the host; `volt` commands show the plugins.
+The loader the engine runs as `server_valve` starts the host. The host installs the engine hooks
+once, loads every plugin it finds under `addons/voltmod/plugins/*/plugin.json`, and offers each
+engine event to them in load order.
 
 ## volt
 
@@ -103,13 +103,13 @@ Withdraw with `Unpublish<T>()` or let the unload do it; the host reports anythin
 
 ## Troubleshooting
 
-**Nothing loads, no `volt` command.** The host is not there. The server needs
-`addons/metamod/voltmod.vdf` and `addons/voltmod/bin/<platform>/voltmod.<dll|so>`; check
-`meta list` first. @ref plugin_guide has the full layout.
+**Nothing loads, no `volt` command.** The host did not start; the console's `[VoltMod]` lines say
+why. The server needs the loader and the host in `addons/voltmod/bin/<platform>/`, and
+`Game csgo/addons/voltmod` directly above `Game csgo` in `gameinfo.gi`. A CS2 update removes that
+line; `voltmod serve` puts it back. @ref plugin_guide has the full layout.
 
-**Plugins load twice, or an old plugin loads on its own.** Before VoltMod 1.5 every plugin had its
-own Metamod plugin file. Delete any leftover `addons/metamod/<plugin>.vdf` by hand;
-`voltmod.vdf` is the only one that belongs there.
+**Plugins load twice, or Metamod tries to load the host.** An older install left Metamod plugin
+files behind. Delete `addons/metamod/voltmod.vdf` and any `addons/metamod/<plugin>.vdf` by hand.
 
 **`Refusing '<dir>': plugin.json names it '<name>', and a plugin lives in the directory it is
 named after.`** Rename the directory or the `name` key so they match. The CMake target must match

@@ -1,7 +1,8 @@
 # VoltMod
 
-C++23 framework for Counter-Strike 2 Metamod:Source plugins. This is its own Git
-repo; when nested in `cs2-plugins`, inspect and validate it separately.
+C++23 framework for Counter-Strike 2 server plugins; the engine loads it as `server_valve`, with or
+without Metamod. This is its own Git repo; when nested in `cs2-plugins`, inspect and validate it
+separately.
 
 ## Comments and names
 
@@ -35,7 +36,7 @@ Preset names are consumer API.
 ```text
 include/VoltMod/  Public API by module     src/        Implementation
 cmake/            Plugin and test helpers  gamedata/   gamedata.jsonc + schema
-conan/            Profiles and remote      recipes/    HL2SDK and Metamod recipes
+conan/            Profiles and remote      recipes/    HL2SDK and KHook recipes
 cli/voltmod/      Python CLI (tests: cli/tests/)   templates/  new-plugin and init files
 tests/            SDK-free doctest suite   docs/       Doxygen guides
 ```

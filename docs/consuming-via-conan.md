@@ -3,7 +3,7 @@
 [TOC]
 
 VoltMod is a Conan package. Do not add the framework as a Git submodule or with
-`add_subdirectory`. The package brings VoltMod, HL2SDK, Metamod, the generated protobuf sources
+`add_subdirectory`. The package brings VoltMod, HL2SDK, KHook, the generated protobuf sources
 and the CMake functions below. `voltmod new project` sets all of this up; this page is for adding it to
 an existing project and for what the functions take.
 
@@ -35,16 +35,16 @@ find_package(voltmod CONFIG REQUIRED)
 add_subdirectory(plugins/my-plugin)
 ```
 
-That generates the VoltMod targets, links `VoltMod::HL2SDK` and `VoltMod::Metamod` behind them,
+That generates the VoltMod targets, links `VoltMod::HL2SDK` and `khook::headers` behind them,
 and includes `cmake/VoltModPlugin.cmake` and `cmake/VoltModTests.cmake`.
 
 ## Packages and targets
 
 | Package | Contents |
 | --- | --- |
-| `voltmod/x.y.z` | The host binary, the Portable, Sdk and Database libraries, headers, CMake helpers, gamedata, templates |
+| `voltmod/x.y.z` | The loader and host binaries, the Portable, Sdk and Database libraries, headers, CMake helpers, gamedata, templates |
 | `hl2sdk-cs2/<yyyy.mm.dd>` | Trimmed HL2SDK in mirror layout: headers, prebuilt Valve libs, generated `.pb.h`/`.pb.cc`, and the source-only TUs each plugin compiles itself. Versioned by the upstream commit date |
-| `metamod-source/2.0.0.<yyyymmdd>` | Metamod core and KHook headers, header-only |
+| `khook/<yyyy.mm.dd>` | KHook headers, and the static implementation only the loader links. Versioned by the upstream commit date |
 | `sqlpp23/<x.yy>` | sqlpp23 headers and `sqlpp23-ddl2cpp`. The `with_postgresql`, `with_mariadb` and `with_sqlite3` options add the matching connector |
 
 | Target | Is |
@@ -54,9 +54,9 @@ and includes `cmake/VoltModPlugin.cmake` and `cmake/VoltModTests.cmake`.
 | `VoltMod::Database` | Postgres/MariaDB/SQLite plus sqlpp23, added by `DATABASE` |
 | `VoltMod::VoltMod` | Every library above |
 
-The package also carries the built host under `addons/`, installed as the `host` component.
-`cmake --install <build> --component host --prefix dist` stages `dist/addons/voltmod/` and
-`dist/addons/metamod/voltmod.vdf` for a server; `voltmod install` does it as part of an install.
+The package also carries the built loader and host under `addons/`, installed as the `host`
+component. `cmake --install <build> --component host --prefix dist` stages `dist/addons/voltmod/`
+for a server; `voltmod install` does it as part of an install.
 
 Source modules are architecture boundaries, not Conan components.
 

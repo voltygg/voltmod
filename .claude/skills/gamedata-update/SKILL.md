@@ -81,7 +81,8 @@ Report which offsets were not checked offline.
 ## 5. Schema
 
 Dumped per platform, only while a map runs. Windows: start the server with `-condebug`, wait for
-`Schema: dumped game build <n>` in `game/csgo/addons/metamod/console.log`, then
+`Schema: dumped game build <n>` in `game/csgo/addons/voltmod/console.log` (`addons/metamod/` when
+Metamod is installed), then
 `uv run voltmod framework schemagen --platform windows --server C:/cs2-server`. Linux: download
 `csgo/addons/voltmod/schema/server.json` from a Linux server on the new build (`PanelApi`
 `/files/download` returns a signed URL), then `framework schemagen --platform linux --dump <file>`.

@@ -1,8 +1,8 @@
 # $project
 
-Counter-Strike 2 Metamod:Source plugins built with
+Counter-Strike 2 server plugins built with
 [VoltMod](https://github.com/voltygg/voltmod). Each plugin lives in `plugins/<name>/` and is
-loaded by the VoltMod host, the server's only Metamod plugin.
+loaded by the VoltMod host.
 
 ## First build
 

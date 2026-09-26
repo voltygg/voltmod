@@ -10,8 +10,8 @@
   <img src="docs/assets/volty-github-avatar.png" alt="VoltMod logo" width="180">
 </p>
 
-VoltMod is a framework for Counter-Strike 2 plugins on Metamod:Source. It supports C++23 today and
-can add more language bindings later. Built-in APIs cover commands, player tools, menus,
+VoltMod is a framework for Counter-Strike 2 server plugins. It loads itself, so Metamod:Source is
+optional. It supports C++23 today and can add more language bindings later. Built-in APIs cover commands, player tools, menus,
 configuration, HTTP, and databases.
 
 > Public APIs may change between versions.
@@ -23,7 +23,7 @@ configuration, HTTP, and databases.
 ## Start a plugin
 
 You need Git, [uv](https://docs.astral.sh/uv/), Python 3.14 or newer, a C++23 compiler, and a CS2
-dedicated server with Metamod:Source. The generated project includes a working `!ping` command.
+dedicated server. The generated project includes a working `!ping` command.
 
 ```sh
 uvx --from git+https://github.com/voltygg/voltmod.git voltmod new project --plugin my-plugin

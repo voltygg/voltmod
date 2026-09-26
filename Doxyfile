@@ -7,7 +7,7 @@
 
 PROJECT_NAME           = "VoltMod"
 PROJECT_NUMBER         =
-PROJECT_BRIEF          = "C++23 framework for CS2 Metamod:Source plugins"
+PROJECT_BRIEF          = "C++23 framework for CS2 server plugins"
 PROJECT_LOGO           =
 OUTPUT_DIRECTORY       = build/docs
 CREATE_SUBDIRS         = NO

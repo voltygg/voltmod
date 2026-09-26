@@ -177,7 +177,7 @@ CCSPlayerPawn::m_ArmorValue: offset 4828 -> 4820
 ## After a game update
 
 `voltmod doctor --server <dir>` says when the server is behind Steam, and when gamedata was
-checked on another build than the server runs. `voltmod serve` puts back the Metamod line an update
+checked on another build than the server runs. `voltmod serve` puts back the VoltMod line an update
 removes from `gameinfo.gi`.
 
 A dump needs a running map, so a cold start refuses every plugin before the first map loads. Update

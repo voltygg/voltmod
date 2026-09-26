@@ -7,10 +7,10 @@
 - Git
 - [uv](https://docs.astral.sh/uv/) and Python 3.14 or newer
 - A C++23 compiler: Visual Studio 2022 or newer on Windows, the Steam Runtime toolchain on Linux
-- A CS2 dedicated server with Metamod:Source, to load the plugin into
+- A CS2 dedicated server to load the plugin into
 
 `uv sync` installs the `voltmod` Python package, which pins CMake, Conan, Ninja and clang-format.
-Conan fetches VoltMod, HL2SDK and Metamod:Source; a generated project has no submodules.
+Conan fetches VoltMod, HL2SDK and KHook; a generated project has no submodules.
 
 ## Create a project
 
@@ -67,8 +67,9 @@ uv run poe run my-plugin
 
 `run` builds, then installs the host and the plugin into `game/csgo`, copying each
 file under `configs/` only when the server does not already have one, so operator edits survive.
-Then it launches the server. With no plugin named it installs every plugin in the repo. To do
-either step on its own:
+Then it adds `Game csgo/addons/voltmod` above `Game csgo` in `gameinfo.gi` if it is missing, and
+launches the server. With no plugin named it installs every plugin in the repo. To do either step
+on its own:
 
 ```sh
 uv run poe install my-plugin
@@ -90,6 +91,6 @@ On the server console:
 volt list
 ```
 
-The host prints each loaded plugin with its version and description, in load order; `meta list`
-shows the host itself. Join and enter `!ping`. @ref host_guide covers the rest of the `volt`
-commands and what to do when a plugin does not appear.
+The host prints each loaded plugin with its version and description, in load order. Join and
+enter `!ping`. @ref host_guide covers the rest of the `volt` commands and what to do when a plugin
+does not appear.

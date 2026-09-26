@@ -28,6 +28,7 @@ name lives directly in `VoltMod`, and moving a type between modules never rename
 | Database | Async Postgres/MariaDB/SQLite and migrations |
 | Unsafe | Opt-in raw hooking: `HookInterface`, `HookVirtual`, `HookFunction` |
 | Host | The plain-data boundary between the host binary and a plugin |
+| Loader | The `server_valve` module that starts the host and owns KHook |
 | App | The composition root: `Runtime`, `Plugin`, `ServiceExchange` |
 
 What each one may include:
@@ -63,13 +64,13 @@ an upward include: `Bindings::Bind` takes a `GameDataLookup`, and `App` adapts `
 it in the `GameData` load step.
 
 These are source layers, not link units. The framework ships `VoltMod::Sdk` and the optional
-`VoltMod::Database`; `Host`'s implementation is compiled into the host binary only.
+`VoltMod::Database`; `Host` is compiled into the host binary only, and `Loader` into the loader.
 
 ## The host and its plugins
 
 ```text
-                         Metamod:Source
-                               │  addons/metamod/voltmod.vdf
+  engine ──► loader (server_valve) ──► Metamod, if installed ──► game server
+                               │  starts the host at ISource2Server::Init
                                ▼
   ┌──────────────────────── voltmod host ────────────────────────┐
   │  8 engine hooks   gamedata   schema check   command names    │
@@ -88,29 +89,34 @@ registered command names and the table of published interfaces - and hands each 
 of it (`IHost`). A plugin is an ordinary library the host opens with `LoadLibrary` or `dlopen`.
 
 Keeping the hooks in the host is what makes several plugins on one server cheap: they share one
-frame hook and one chat hook instead of racing each other for Metamod slots, and a reload takes
-down one plugin rather than the whole stack.
+frame hook and one chat hook instead of each hooking the engine, and a reload takes down one
+plugin rather than the whole stack.
 
 ### Load sequence
 
-1. Metamod loads `voltmod.vdf`, which is the host.
-2. The host resolves `addons/voltmod/gamedata/gamedata.jsonc` once for the process. A signature a
+1. The engine loads `server_valve` before `server` and finds the loader through
+   `Game csgo/addons/voltmod`, directly above `Game csgo` in `gameinfo.gi`. The loader loads the
+   next `server` on the `Game` lines (Metamod's where installed, else the game's) and forwards every
+   interface request to it.
+2. At `ISource2Server::Init`, before the game's own `Init`, the loader starts the host, so Metamod
+   and its plugins start after the framework. The loader owns the process's one KHook.
+3. The host resolves `addons/voltmod/gamedata/gamedata.jsonc` once for the process. A signature a
    game update broke is logged here and nowhere else.
-3. It verifies the live schema against the layout baked into this build, once, and remembers both
+4. It verifies the live schema against the layout baked into this build, once, and remembers both
    the verdict and the layout stamp.
-4. It installs the engine hooks and reserves the `volt` command name.
-5. It reads every `addons/voltmod/plugins/*/plugin.json`, refuses the plugins whose required dependencies
+5. It installs the engine hooks and reserves the `volt` command name.
+6. It reads every `addons/voltmod/plugins/*/plugin.json`, refuses the plugins whose required dependencies
    are not there with one `Refusing '<name>': <reason>` line each, and loads the rest alphabetically.
-6. For each plugin it opens the library, resolves `VoltMod_PluginEntry`, checks the descriptor's
+7. For each plugin it opens the library, resolves `VoltMod_PluginEntry`, checks the descriptor's
    ABI version and its `Load`/`Unload`/`Status` pointers, opens a host view under the plugin's
    name and log tag, then calls `Load`.
-7. Inside the plugin, the internal module seeds its hook dispatch pointer, creates the `Runtime`,
+8. Inside the plugin, the internal module seeds its hook dispatch pointer, creates the `Runtime`,
    and runs `Runtime::Initialize`: logging, engine interfaces, then the framework load steps, among
    them the schema stamp comparison that refuses a plugin built against a different layout.
-8. The module constructs the derived `Plugin`, subscribes to host events, then calls `Load`. A
+9. The module constructs the derived `Plugin`, subscribes to host events, then calls `Load`. A
    `false` from `Load` returns the first required step's reason to the host, which logs it as the
    refusal, destroys the plugin, and frees its library.
-9. The host logs `N of M installed plugin(s) loaded.`
+10. The host logs `N of M installed plugin(s) loaded.`
 
 Unload runs in reverse: the plugin's commands, the plugin object, its host-event subscriptions,
 then the `Runtime`. Only once nothing of the plugin is still running does the host
