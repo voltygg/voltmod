@@ -39,6 +39,7 @@ struct HostState
 
     CallbackList<IHostEvents::FrameFn> Frame;
     CallbackList<IHostEvents::ServerStartupFn> ServerStartup;
+    CallbackList<IHostEvents::ClientConnectingFn> ClientConnecting;
     CallbackList<IHostEvents::ClientConnectedFn> ClientConnected;
     CallbackList<IHostEvents::ClientDisconnectedFn> ClientDisconnected;
     CallbackList<IHostEvents::ClientFullyConnectedFn> ClientFullyConnected;
@@ -103,6 +104,7 @@ public:
 
     uint64_t OnFrame(FrameFn callback, void* context) override;
     uint64_t OnServerStartup(ServerStartupFn callback, void* context) override;
+    uint64_t OnClientConnecting(ClientConnectingFn callback, void* context) override;
     uint64_t OnClientConnected(ClientConnectedFn callback, void* context) override;
     uint64_t OnClientDisconnected(ClientDisconnectedFn callback, void* context) override;
     uint64_t OnClientFullyConnected(ClientFullyConnectedFn callback, void* context) override;

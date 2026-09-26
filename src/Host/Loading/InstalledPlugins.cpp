@@ -1,6 +1,7 @@
 #include "Host/Loading/InstalledPlugins.hpp"
 
 #include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Text/EnumNames.hpp>
 #include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Host/Abi.hpp>
 #include <format>
@@ -20,17 +21,33 @@ struct PluginDocument
     std::string logTag;
     std::string description;
     std::string author;
+    std::string website;
+    std::string license;
+    std::string logLevel = "info";
     std::vector<std::string> dependencies;
     std::vector<std::string> optionalDependencies;
     // Read by `voltmod database header`; the host only accepts it.
     std::optional<glz::raw_json> database;
+    // Points editors at the plugin schema; the host only accepts it.
+    std::optional<std::string> schema;
 };
+
+}  // namespace VoltMod
+
+template <>
+struct glz::meta<VoltMod::PluginDocument>
+{
+    static constexpr std::string_view rename_key(std::string_view key) { return key == "schema" ? "$schema" : key; }
+};
+
+namespace VoltMod
+{
 
 static constexpr std::string_view ManifestName = "plugin.json";
 
-std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::path& plugins)
+Discovered InstalledPlugins::Discover(const std::filesystem::path& plugins)
 {
-    std::vector<PluginManifest> installed;
+    Discovered installed;
 
     std::error_code failed;
     if (!std::filesystem::exists(plugins, failed))
@@ -61,24 +78,39 @@ std::vector<PluginManifest> InstalledPlugins::Discover(const std::filesystem::pa
             Json::ReadFile<PluginDocument, Json::StrictReadOptions>(manifest.string());
         if (!document)
         {
-            Log::Error("Refusing '{}': {}", directory, document.error().Detail);
+            installed.Refused.push_back({.Name = directory, .Reason = document.error()});
             continue;
         }
 
         if (document->name != directory)
         {
-            Log::Error("Refusing '{}': {} names it '{}', and a plugin lives in the directory it is named after.",
-                       directory, ManifestName, document->name);
+            installed.Refused.push_back({.Name = directory,
+                                         .Reason = Error::Invalid(std::format(
+                                             "{} names it '{}', and a plugin lives in the directory it is named after.",
+                                             ManifestName, document->name))});
             continue;
         }
 
-        installed.push_back({.Name = document->name,
-                             .Version = document->version,
-                             .LogTag = document->logTag.empty() ? document->name : document->logTag,
-                             .Description = document->description,
-                             .Author = document->author,
-                             .Dependencies = document->dependencies,
-                             .OptionalDependencies = document->optionalDependencies});
+        const std::optional<LogLevel> level = Parse<LogLevel>(document->logLevel);
+        if (!level)
+        {
+            installed.Refused.push_back(
+                {.Name = directory,
+                 .Reason = Error::Invalid(
+                     std::format("{}: logLevel '{}' is not info, warn or error", ManifestName, document->logLevel))});
+            continue;
+        }
+
+        installed.Plugins.push_back({.Name = document->name,
+                                     .Version = document->version,
+                                     .LogTag = document->logTag.empty() ? document->name : document->logTag,
+                                     .Description = document->description,
+                                     .Author = document->author,
+                                     .Website = document->website,
+                                     .License = document->license,
+                                     .LogLevel = *level,
+                                     .Dependencies = document->dependencies,
+                                     .OptionalDependencies = document->optionalDependencies});
     }
 
     if (failed)

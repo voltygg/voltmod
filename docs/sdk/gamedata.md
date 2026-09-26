@@ -38,7 +38,7 @@ belongs to exactly one section.
 
 ```jsonc
 {
-  "$schema": "./gamedata.schema.json",
+  "$schema": "https://raw.githubusercontent.com/voltygg/voltmod/main/gamedata/gamedata.schema.json",
   // steam.inf ServerVersion the entries were last checked on, and the date.
   "build": { "server": "2000908", "verified": "2026-09-11" },
 
@@ -87,8 +87,9 @@ its bindings and then its bases' for the name, and takes the function, or for a 
 slot the binding dispatches through. A VScript binding can vanish in an update, so use one only
 where the binding calls the engine function itself.
 
-`gamedata.schema.json` sits beside the file with `additionalProperties: false` everywhere, so an
-editor flags a typo before the server sees it.
+`gamedata.schema.json` in the framework repository has `additionalProperties: false` everywhere,
+and the file's `$schema` loads it from GitHub, so an editor flags a typo before the server sees it.
+Only `gamedata.jsonc` ships; the schema is never copied to a server or into the package.
 
 ## What the host checks
 

@@ -66,6 +66,20 @@ void PluginHost::RaiseServerStartup(std::string_view mapName)
     });
 }
 
+std::string PluginHost::RaiseClientConnecting(int slot, int64_t steamId, std::string_view name)
+{
+    char reason[256] = {};
+    const bool refused = _state.ClientConnecting.Dispatch([&](IHostEvents::ClientConnectingFn callback, void* context) {
+        return callback(context, slot, steamId, name, reason, sizeof reason);
+    });
+    if (!refused)
+    {
+        return {};
+    }
+    reason[sizeof reason - 1] = '\0';
+    return reason[0] != '\0' ? std::string(reason) : std::string("Refused by the server.");
+}
+
 void PluginHost::RaiseClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address)
 {
     // First, so a pick a plugin restores on connect survives.

@@ -4,6 +4,7 @@
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerRef.hpp>
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <string>
@@ -13,6 +14,16 @@
 
 namespace VoltMod
 {
+
+/** A player asking to join. Set Rejected to refuse them; they see Reason. */
+struct ConnectRequest
+{
+    int Slot = -1;
+    int64_t SteamId = 0;
+    std::string_view Name;
+    bool Rejected = false;
+    std::string Reason;
+};
 
 /** A chat line that was neither menu input nor a command. Set Blocked to keep it out of chat. */
 struct ChatMessage
@@ -48,6 +59,10 @@ public:
 
     PlayerManager(const PlayerManager&) = delete;
     PlayerManager& operator=(const PlayerManager&) = delete;
+
+    /** @brief A player is asking to join, before the engine admits them and before they are in
+     *  the roster. A handler that sets `Rejected` keeps them out. */
+    Event<ConnectRequest&> Connecting;
 
     /** @brief A player joined and is now in the roster. Their name is not meaningful yet -
      *  @ref FullyConnected is the first point it is. */

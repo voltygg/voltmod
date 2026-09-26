@@ -32,7 +32,7 @@ class VoltModConan(ConanFile):
         "cmake/*",
         "include/*",
         "src/*",
-        "gamedata/*",
+        "gamedata/gamedata.jsonc",
         "panorama/*",
         "templates/plugin/*",
         "LICENSE",

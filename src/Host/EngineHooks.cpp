@@ -14,7 +14,9 @@
 #include <inetchannelinfo.h>
 #include <interfaces/interfaces.h>
 #include <iserver.h>
+#include <string>
 #include <string_view>
+#include <tier1/bufferstring.h>
 #include <tier1/convar.h>
 #include <utility>
 
@@ -122,6 +124,23 @@ Status EngineHooks::Install()
             _host.RaiseServerStartup(map);
             DisconnectEveryone();
         }));
+
+    // Before the engine admits the player, so a refusal keeps them out with a reason they see.
+    add(HookInterface(&IServerGameClients::ClientConnect, serverGameClients,
+                      [this](IServerGameClients&, CPlayerSlot slot, const char* name, uint64 xuid, const char*, bool,
+                             CBufferString* rejectReason) -> HookResult<bool> {
+                          const std::string reason =
+                              _host.RaiseClientConnecting(slot.Get(), static_cast<int64_t>(xuid), Text(name));
+                          if (reason.empty())
+                          {
+                              return {};
+                          }
+                          if (rejectReason != nullptr)
+                          {
+                              rejectReason->Insert(0, reason.c_str());
+                          }
+                          return HookResult<bool>::Block(false);
+                      }));
 
     add(HookInterface(&IServerGameClients::OnClientConnected, serverGameClients,
                       [this](IServerGameClients&, CPlayerSlot slot, const char* name, uint64 xuid, const char*,

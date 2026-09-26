@@ -1,6 +1,7 @@
 #pragma once
 
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <string_view>
 
@@ -16,6 +17,10 @@ struct IHostEvents
 {
     using FrameFn = void (*)(void* context);
     using ServerStartupFn = void (*)(void* context, std::string_view mapName);
+    /** True refuses the player: later plugins are not asked, and the engine shows @p reason, which
+     *  the callback fills with at most @p reasonSize bytes including the terminator. */
+    using ClientConnectingFn = bool (*)(void* context, int slot, int64_t steamId, std::string_view name, char* reason,
+                                        size_t reasonSize);
     using ClientConnectedFn = void (*)(void* context, int slot, int64_t steamId, std::string_view name,
                                        std::string_view address);
     using ClientDisconnectedFn = void (*)(void* context, int slot);
@@ -29,6 +34,8 @@ struct IHostEvents
 
     virtual uint64_t OnFrame(FrameFn callback, void* context) = 0;
     virtual uint64_t OnServerStartup(ServerStartupFn callback, void* context) = 0;
+    /** Before the engine admits a player, and before OnClientConnected. */
+    virtual uint64_t OnClientConnecting(ClientConnectingFn callback, void* context) = 0;
     virtual uint64_t OnClientConnected(ClientConnectedFn callback, void* context) = 0;
     virtual uint64_t OnClientDisconnected(ClientDisconnectedFn callback, void* context) = 0;
     virtual uint64_t OnClientFullyConnected(ClientFullyConnectedFn callback, void* context) = 0;

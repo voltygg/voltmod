@@ -66,15 +66,26 @@ void VoltCommand::PrintLoaded() const
     if (loaded.empty())
     {
         Log::Info("No plugins are loaded.");
-        return;
     }
-
-    Log::Info("{} plugin(s), in load order:", loaded.size());
+    else
+    {
+        Log::Info("{} plugin(s), in load order:", loaded.size());
+    }
     for (const LoadedPlugin& plugin : loaded)
     {
         const std::string_view description = plugin.Manifest.Description;
         Log::Info("  {} v{}{}{}", plugin.Manifest.Name, plugin.Manifest.Version, description.empty() ? "" : " - ",
                   description);
+    }
+
+    const auto& refused = _loader.Refused();
+    if (!refused.empty())
+    {
+        Log::Info("{} refused:", refused.size());
+    }
+    for (const auto& [name, reason] : refused)
+    {
+        Log::Info("  {} - {}", name, reason);
     }
 }
 

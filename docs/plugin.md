@@ -104,11 +104,14 @@ unknown key is an error and the plugin is refused.
 
 ```json
 {
+  "$schema": "https://raw.githubusercontent.com/voltygg/voltmod/main/templates/plugin.schema.json",
   "name": "my-plugin",
   "version": "1.0.0",
   "logTag": "MYPLUGIN",
   "description": "",
   "author": "",
+  "website": "",
+  "license": "",
   "dependencies": [],
   "optionalDependencies": []
 }
@@ -116,11 +119,15 @@ unknown key is an error and the plugin is refused.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
+| `$schema` | string | none | Points editors at the plugin schema, so they complete and check keys. The host ignores it. |
 | `name` | string | required | The plugin's directory under `addons/voltmod/plugins/` and its CMake target. All three must match. |
 | `version` | string | required | Its version. CMake stamps it into the build info as `<version>+<short-sha>[-dirty]`, which is what `volt list` shows. |
 | `logTag` | string | `name` | The prefix the host puts in front of every log line from this plugin. |
 | `description` | string | `""` | One line, printed after the version by `volt list`. |
 | `author` | string | `""` | Credit. The host does not print it. |
+| `website` | string | `""` | The plugin's page or repository. Credit, like `author`. |
+| `license` | string | `""` | An SPDX id such as `MIT`, or `proprietary`. Credit only. |
+| `logLevel` | string | `"info"` | The level the plugin starts at: `info`, `warn` or `error`. `volt log <name> <level>` changes it until the next load; another value refuses the plugin. |
 | `dependencies` | string[] | `[]` | Plugins this one is refused without. |
 | `optionalDependencies` | string[] | `[]` | Plugins it is better with; never a reason to refuse it. |
 | `database` | object | none | `migrations`, `header` and `namespace` for `voltmod database header`, relative to the plugin directory. The host ignores it. |

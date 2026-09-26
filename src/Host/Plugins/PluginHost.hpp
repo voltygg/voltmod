@@ -6,6 +6,7 @@
 #include <VoltMod/Host/IHostGameData.hpp>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -49,6 +50,8 @@ public:
 
     void RaiseFrame();
     void RaiseServerStartup(std::string_view mapName);
+    /** Ask each plugin whether @p slot may join. The first refusal's reason, or empty to admit. */
+    std::string RaiseClientConnecting(int slot, int64_t steamId, std::string_view name);
     void RaiseClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address);
     void RaiseClientDisconnected(int slot);
     void RaiseClientFullyConnected(int slot);

@@ -7,7 +7,7 @@
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Host/PluginDescriptor.hpp>
 #include <functional>
-#include <span>
+#include <map>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -64,6 +64,9 @@ public:
     /** The loaded plugin @p name, or nullptr after logging that it is not loaded. */
     LoadedPlugin* RequireLoaded(std::string_view name);
 
+    /** Each plugin the last load attempt refused, by name, with the reason; a later load clears it. */
+    const std::map<std::string, std::string>& Refused() const { return _refused; }
+
 private:
     struct PendingAction
     {
@@ -77,7 +80,9 @@ private:
     void UnloadOne(std::string_view name);
 
     /** Plan @p installed, log what it refuses, and load whatever @p wanted accepts. */
-    void LoadGroup(std::span<const PluginManifest> installed, const std::function<bool(std::string_view)>& wanted);
+    void LoadGroup(const Discovered& installed, const std::function<bool(std::string_view)>& wanted);
+    /** Log that @p name was refused and remember why, for `volt list`. */
+    void Refuse(std::string_view name, std::string reason);
 
     LoadedPlugin* FindLoaded(std::string_view name);
     std::vector<PluginManifest> LoadedManifests() const;
@@ -89,6 +94,7 @@ private:
     PluginHost& _host;
     std::vector<LoadedPlugin> _loaded;
     std::vector<PendingAction> _pending;
+    std::map<std::string, std::string> _refused;
 };
 
 }  // namespace VoltMod

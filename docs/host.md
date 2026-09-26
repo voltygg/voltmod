@@ -12,7 +12,7 @@ Run these on the server console or over RCON.
 
 | Command | Does |
 | --- | --- |
-| `volt list` | Prints `N plugin(s), in load order:` then one `  <name> v<version> - <description>` line each, or `No plugins are loaded.` |
+| `volt list` | Prints `N plugin(s), in load order:` then one `  <name> v<version> - <description>` line each, or `No plugins are loaded.`; then `N refused:` and one `  <name> - <reason>` line per plugin the last attempt refused, until a later load of it succeeds |
 | `volt status` | Prints `<name>: <status JSON>` for every loaded plugin |
 | `volt status <name>` | Prints that one line (see @ref plugin_guide for the sections) |
 | `volt load <name>` | Loads an installed plugin that is not loaded |

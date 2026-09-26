@@ -11,13 +11,6 @@
 namespace VoltMod
 {
 
-/** A plugin the host will not load, and the reason its log line gives. */
-struct RefusedPlugin
-{
-    std::string Name;
-    Error Reason;
-};
-
 /** Which plugins the host loads and which it turns away, with the reason. Both alphabetical. */
 struct LoadList
 {

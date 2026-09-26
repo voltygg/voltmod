@@ -39,7 +39,7 @@ static std::filesystem::path LibraryPath(std::string_view name)
     return ResolvePath(PluginFile(name, std::format("{}{}", name, LibrarySuffix)));
 }
 
-static std::vector<PluginManifest> Installed()
+static Discovered Installed()
 {
     return InstalledPlugins::Discover(ResolvePath("addons/voltmod/plugins"));
 }
@@ -53,9 +53,10 @@ PluginLoader::~PluginLoader()
 
 void PluginLoader::LoadAll()
 {
-    const std::vector<PluginManifest> installed = Installed();
+    const Discovered installed = Installed();
     LoadGroup(installed, [](std::string_view) { return true; });
-    Log::Info("{} of {} installed plugin(s) loaded.", _loaded.size(), installed.size());
+    Log::Info("{} of {} installed plugin(s) loaded.", _loaded.size(),
+              installed.Plugins.size() + installed.Refused.size());
 }
 
 void PluginLoader::UnloadAll()
@@ -101,15 +102,17 @@ void PluginLoader::RunPending()
     }
 }
 
-void PluginLoader::LoadGroup(std::span<const PluginManifest> installed,
-                             const std::function<bool(std::string_view)>& wanted)
+void PluginLoader::LoadGroup(const Discovered& installed, const std::function<bool(std::string_view)>& wanted)
 {
-    const LoadList list = PluginDependencies::Resolve(installed);
-    for (const RefusedPlugin& refused : list.Refused)
+    const LoadList list = PluginDependencies::Resolve(installed.Plugins);
+    for (const std::vector<RefusedPlugin>* refusals : {&installed.Refused, &list.Refused})
     {
-        if (wanted(refused.Name))
+        for (const RefusedPlugin& refused : *refusals)
         {
-            Log::Error("Refusing '{}': {}", refused.Name, refused.Reason.Detail);
+            if (wanted(refused.Name))
+            {
+                Refuse(refused.Name, refused.Reason.Detail);
+            }
         }
     }
 
@@ -120,12 +123,18 @@ void PluginLoader::LoadGroup(std::span<const PluginManifest> installed,
             continue;
         }
 
-        const auto found = std::ranges::find(installed, name, &PluginManifest::Name);
+        const auto found = std::ranges::find(installed.Plugins, name, &PluginManifest::Name);
         if (Status loaded = LoadOne(*found); !loaded)
         {
-            Log::Error("Refusing '{}': {}", name, loaded.error().Detail);
+            Refuse(name, loaded.error().Detail);
         }
     }
+}
+
+void PluginLoader::Refuse(std::string_view name, std::string reason)
+{
+    Log::Error("Refusing '{}': {}", name, reason);
+    _refused.insert_or_assign(std::string(name), std::move(reason));
 }
 
 Status PluginLoader::LoadOne(const PluginManifest& manifest)
@@ -156,6 +165,7 @@ Status PluginLoader::LoadOne(const PluginManifest& manifest)
     {
         return std::unexpected(Error::Failed("the host already holds a view under that name"));
     }
+    view->SetMinLogLevel(manifest.LogLevel);
 
     char failure[512] = {};
     if (!descriptor->Load(view, failure, sizeof failure))
@@ -168,6 +178,7 @@ Status PluginLoader::LoadOne(const PluginManifest& manifest)
     }
 
     _loaded.push_back({.Manifest = manifest, .Descriptor = descriptor, .Code = std::move(*code)});
+    _refused.erase(name);
 
     Log::Info("Loaded {} v{}.", name, manifest.Version);
     return {};
@@ -230,9 +241,16 @@ void PluginLoader::RunLoad(std::string_view name)
         return;
     }
 
-    const std::vector<PluginManifest> installed = Installed();
-    const auto found = std::ranges::find(installed, name, &PluginManifest::Name);
-    if (found == installed.end())
+    const Discovered installed = Installed();
+    if (const auto broken = std::ranges::find(installed.Refused, name, &RefusedPlugin::Name);
+        broken != installed.Refused.end())
+    {
+        Refuse(name, broken->Reason.Detail);
+        return;
+    }
+
+    const auto found = std::ranges::find(installed.Plugins, name, &PluginManifest::Name);
+    if (found == installed.Plugins.end())
     {
         Log::Warn("'{}' is not installed.", name);
         return;
@@ -242,14 +260,14 @@ void PluginLoader::RunLoad(std::string_view name)
     {
         if (FindLoaded(dependency) == nullptr)
         {
-            Log::Warn("Refusing to load '{}': it requires '{}', which is not loaded.", name, dependency);
+            Refuse(name, std::format("it requires '{}', which is not loaded.", dependency));
             return;
         }
     }
 
     if (Status loaded = LoadOne(*found); !loaded)
     {
-        Log::Error("Refusing '{}': {}", name, loaded.error().Detail);
+        Refuse(name, loaded.error().Detail);
     }
 }
 

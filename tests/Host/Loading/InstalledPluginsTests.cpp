@@ -61,7 +61,7 @@ TEST_CASE("A manifest is read with its optional fields defaulted")
     const Plugins plugins("installed-plugins");
     plugins.Install("bhop", R"({ "name": "bhop", "version": "1.2.0", "dependencies": ["admin-system"] })");
 
-    const std::vector<PluginManifest> installed = Discover(plugins.Path());
+    const std::vector<PluginManifest> installed = Discover(plugins.Path()).Plugins;
 
     REQUIRE(installed.size() == 1u);
     CHECK(installed[0].Name == "bhop");
@@ -70,6 +70,7 @@ TEST_CASE("A manifest is read with its optional fields defaulted")
     CHECK(installed[0].Description.empty());
     CHECK(installed[0].Dependencies == std::vector<std::string>{"admin-system"});
     CHECK(installed[0].OptionalDependencies.empty());
+    CHECK(installed[0].LogLevel == VoltMod::LogLevel::Info);
 }
 
 TEST_CASE("A log tag the manifest gives is kept")
@@ -77,7 +78,7 @@ TEST_CASE("A log tag the manifest gives is kept")
     const Plugins plugins("installed-plugins");
     plugins.Install("admin-system", R"({ "name": "admin-system", "version": "2.0.0", "logTag": "Admin" })");
 
-    const std::vector<PluginManifest> installed = Discover(plugins.Path());
+    const std::vector<PluginManifest> installed = Discover(plugins.Path()).Plugins;
 
     REQUIRE(installed.size() == 1u);
     CHECK(installed[0].LogTag == "Admin");
@@ -96,10 +97,42 @@ TEST_CASE("A manifest with a database block for the CLI is accepted")
         }
     })");
 
-    const std::vector<PluginManifest> installed = Discover(plugins.Path());
+    const std::vector<PluginManifest> installed = Discover(plugins.Path()).Plugins;
 
     REQUIRE(installed.size() == 1u);
     CHECK(installed[0].Name == "admin-system");
+}
+
+TEST_CASE("The credit keys, a start log level and an editor schema are read")
+{
+    const Plugins plugins("installed-plugins");
+    plugins.Install("bhop", R"({
+        "$schema": "https://example.com/plugin.schema.json",
+        "name": "bhop",
+        "version": "1.0.0",
+        "website": "https://meat.gg",
+        "license": "MIT",
+        "logLevel": "warn"
+    })");
+
+    const std::vector<PluginManifest> installed = Discover(plugins.Path()).Plugins;
+
+    REQUIRE(installed.size() == 1u);
+    CHECK(installed[0].Website == "https://meat.gg");
+    CHECK(installed[0].License == "MIT");
+    CHECK(installed[0].LogLevel == VoltMod::LogLevel::Warn);
+}
+
+TEST_CASE("A log level the host does not know is refused, naming the key")
+{
+    const Plugins plugins("installed-plugins");
+    plugins.Install("bhop", R"({ "name": "bhop", "version": "1.0.0", "logLevel": "debug" })");
+
+    const auto found = Discover(plugins.Path());
+
+    CHECK(found.Plugins.empty());
+    REQUIRE(found.Refused.size() == 1u);
+    CHECK(found.Refused[0].Reason.Detail.find("logLevel") != std::string::npos);
 }
 
 TEST_CASE("A manifest naming a plugin other than its directory is refused")
@@ -107,7 +140,10 @@ TEST_CASE("A manifest naming a plugin other than its directory is refused")
     const Plugins plugins("installed-plugins");
     plugins.Install("bhop", R"({ "name": "surf", "version": "1.0.0" })");
 
-    CHECK(Discover(plugins.Path()).empty());
+    const auto found = Discover(plugins.Path());
+    CHECK(found.Plugins.empty());
+    REQUIRE(found.Refused.size() == 1u);
+    CHECK(found.Refused[0].Name == "bhop");
 }
 
 TEST_CASE("A malformed manifest, or one with a misspelled key, is refused")
@@ -116,7 +152,9 @@ TEST_CASE("A malformed manifest, or one with a misspelled key, is refused")
     plugins.Install("bhop", R"({ "name": "bhop", )");
     plugins.Install("surf", R"({ "name": "surf", "version": "1.0.0", "dependancies": ["bhop"] })");
 
-    CHECK(Discover(plugins.Path()).empty());
+    const auto found = Discover(plugins.Path());
+    CHECK(found.Plugins.empty());
+    CHECK(found.Refused.size() == 2u);
 }
 
 TEST_CASE("A directory without a manifest is not a plugin")
@@ -125,7 +163,7 @@ TEST_CASE("A directory without a manifest is not a plugin")
     plugins.Install("not-a-plugin", "");
     plugins.Install("bhop", R"({ "name": "bhop", "version": "1.0.0" })");
 
-    const std::vector<PluginManifest> installed = Discover(plugins.Path());
+    const std::vector<PluginManifest> installed = Discover(plugins.Path()).Plugins;
 
     REQUIRE(installed.size() == 1u);
     CHECK(installed[0].Name == "bhop");
@@ -133,7 +171,7 @@ TEST_CASE("A directory without a manifest is not a plugin")
 
 TEST_CASE("A plugins directory that is not there resolves to nothing")
 {
-    CHECK(Discover("voltmod-no-such-plugins-directory").empty());
+    CHECK(Discover("voltmod-no-such-plugins-directory").Plugins.empty());
 }
 
 TEST_CASE("A descriptor is accepted only whole and only at this host's ABI version")

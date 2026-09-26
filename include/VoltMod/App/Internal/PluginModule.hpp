@@ -44,6 +44,7 @@ private:
     void Shutdown() noexcept;
 
     void OnFrame();
+    bool OnClientConnecting(int slot, int64_t steamId, std::string_view name, char* reason, size_t reasonSize);
     void OnClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address);
     void OnClientDisconnected(int slot);
     void OnClientFullyConnected(int slot);

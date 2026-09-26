@@ -27,8 +27,14 @@ What changed in each VoltMod release. Older history is in git.
 - `Action`, `ActionDispatcher`, `EffectDescriptor`, `EffectDispatcher`, `EffectManager` and
   `ActionRows` left the framework, and `Policy::Broadcast` with them.
 
+- Rebuild every plugin: the host ABI is now 5 (`IHostEvents::OnClientConnecting`).
+
 ### New
 
+- `Runtime.Players.Connecting` refuses a player before the engine admits them, with a reason they see.
+- `volt list` also names each refused plugin with its reason.
+- `plugin.json` takes `$schema`, `website`, `license` and a starting `logLevel`; `templates/plugin.schema.json`
+  lets editors complete it.
 - `Messages::BroadcastKey` sends a key to every player in their own language.
 - `Args::Target` reads through `->`, and `Args::Opt::ValueOr` returns the value or a fallback.
 - `Options::Reload()` reads the settings file again.

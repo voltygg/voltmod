@@ -1,6 +1,7 @@
 #include "Host/Plugins/PluginHost.hpp"
 
 #include <cstdint>
+#include <cstdio>
 #include <doctest/doctest.h>
 #include <ostream>
 #include <string>
@@ -37,6 +38,38 @@ TEST_CASE("Frame callbacks run in plugin load order, then subscription order")
     host.RaiseFrame();
 
     CHECK(trace.Calls == std::vector<std::string>{"first-a", "first-b", "second"});
+}
+
+TEST_CASE("The first plugin refusing a connect stops the others and gives its reason")
+{
+    PluginHost host;
+    HostView* first = host.AddPlugin("first");
+    HostView* second = host.AddPlugin("second");
+    REQUIRE(first != nullptr);
+    REQUIRE(second != nullptr);
+
+    EventsTrace trace;
+    first->OnClientConnecting(
+        +[](void* context, int, int64_t steamId, std::string_view, char* reason, size_t size) {
+            Note(context, "first");
+            if (steamId != 7)
+            {
+                return false;
+            }
+            std::snprintf(reason, size, "banned");
+            return true;
+        },
+        &trace);
+    second->OnClientConnecting(
+        +[](void* context, int, int64_t, std::string_view, char*, size_t) {
+            Note(context, "second");
+            return false;
+        },
+        &trace);
+
+    CHECK(host.RaiseClientConnecting(1, 5, "admitted").empty());
+    CHECK(host.RaiseClientConnecting(1, 7, "refused") == "banned");
+    CHECK(trace.Calls == std::vector<std::string>{"first", "second", "first"});
 }
 
 TEST_CASE("A client connect arrives with its strings and ids intact")

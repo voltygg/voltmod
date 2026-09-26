@@ -134,6 +134,11 @@ uint64_t HostView::OnServerStartup(ServerStartupFn callback, void* context)
     return Subscribe("server startup", _state.ServerStartup, callback, context);
 }
 
+uint64_t HostView::OnClientConnecting(ClientConnectingFn callback, void* context)
+{
+    return Subscribe("client connecting", _state.ClientConnecting, callback, context);
+}
+
 uint64_t HostView::OnClientConnected(ClientConnectedFn callback, void* context)
 {
     return Subscribe("client connected", _state.ClientConnected, callback, context);

@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "voltmod plugin.json",
+  "description": "A VoltMod plugin's identity. The host reads the installed copy strictly: an unknown key refuses the plugin.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "version"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Points editors at this schema. The host ignores it."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "The plugin's directory under addons/voltmod/plugins/ and its CMake target; all three match."
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Its version, shown by `volt list`."
+    },
+    "logTag": {
+      "type": "string",
+      "description": "Prefix of every log line from this plugin. Default: the name."
+    },
+    "description": {
+      "type": "string",
+      "description": "One line, printed after the version by `volt list`."
+    },
+    "author": {
+      "type": "string",
+      "description": "Credit. The host does not print it."
+    },
+    "website": {
+      "type": "string",
+      "description": "The plugin's page or repository. Credit, like author."
+    },
+    "license": {
+      "type": "string",
+      "description": "An SPDX id such as MIT, or proprietary. Credit only."
+    },
+    "logLevel": {
+      "enum": [
+        "info",
+        "warn",
+        "error"
+      ],
+      "default": "info",
+      "description": "The level the plugin starts at. `volt log <name> <level>` changes it until the next load."
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Plugins this one is refused without."
+    },
+    "optionalDependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Plugins it is better with; never a reason to refuse it."
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "migrations": {
+          "type": "string"
+        },
+        "header": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        }
+      },
+      "description": "Where `voltmod database header` reads migrations and writes table specs. The host ignores it."
+    }
+  }
+}

@@ -49,10 +49,11 @@ not join or kick anybody while iterating it.
 
 ### Connection lifecycle
 
-Four @ref VoltMod::Event members, in the order a connection sees them. Subscribe in the constructor
+Five @ref VoltMod::Event members, in the order a connection sees them. Subscribe in the constructor
 of the class whose state the handler touches, and keep each `Subscription` there:
 
 ```cpp
+_joining   = runtime.Players.Connecting += [this](VoltMod::ConnectRequest& r) { r.Rejected = IsBanned(r.SteamId); };
 _connected = runtime.Players.Connected += [this](VoltMod::Player& p) { RecordConnect(p.SteamId()); };
 _fully     = runtime.Players.FullyConnected += [this](VoltMod::Player& p) { Baseline(p.Slot(), p.Name()); };
 _settings  = runtime.Players.SettingsChanged += [this](VoltMod::Player& p) { CheckRename(p); };
@@ -61,6 +62,7 @@ _left      = runtime.Players.Disconnected += [this](VoltMod::Player& p) { FlushS
 
 | Event | When |
 | --- | --- |
+| `Connecting` | before the engine admits the player, and before the roster has them; set `Rejected` and `Reason` on the @ref VoltMod::ConnectRequest to keep them out, and they see the reason. The first plugin to refuse ends it |
 | `Connected` | the player is in the roster; their name is not meaningful yet |
 | `FullyConnected` | post `ClientFullyConnect`, the first point `Name()` and the client's replicated convars mean anything |
 | `SettingsChanged` | every replicated setting change, including the burst the engine sends at connect, so debounce if you act on it |

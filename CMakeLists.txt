@@ -187,8 +187,8 @@ target_compile_definitions(voltmod-loader PRIVATE
 # Keep KHook, safetyhook and Zydis symbols local, so they never bind to another module's copy.
 target_link_options(voltmod-loader PRIVATE "$<$<PLATFORM_ID:Linux>:LINKER:--exclude-libs,ALL>")
 
-# Gamedata ships once, with the host.
-install(DIRECTORY "${VOLTMOD_GAMEDATA_DIR}/"
+# Gamedata ships once, with the host. Its schema is for editors, which load it from GitHub.
+install(FILES "${VOLTMOD_GAMEDATA_DIR}/gamedata.jsonc"
     DESTINATION "addons/voltmod/gamedata" COMPONENT host)
 
 # CMakeDeps generates the package config; no export set is needed.
@@ -196,7 +196,7 @@ install(TARGETS voltmod-portable voltmod-sdk voltmod-database ARCHIVE DESTINATIO
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/" DESTINATION include)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/" DESTINATION cmake)
-install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/gamedata/" DESTINATION gamedata)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/gamedata/gamedata.jsonc" DESTINATION gamedata)
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/templates/plugin/" DESTINATION templates/plugin)
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" DESTINATION licenses)
 

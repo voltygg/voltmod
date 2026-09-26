@@ -253,6 +253,7 @@ void PluginModule::SubscribeHostEvents()
 
     keep(events.OnFrame(&HostCallback<&PluginModule::OnFrame>::Call, this));
     keep(events.OnServerStartup(&HostCallback<&PluginModule::OnServerStartup>::Call, this));
+    keep(events.OnClientConnecting(&HostCallback<&PluginModule::OnClientConnecting>::Call, this));
     keep(events.OnClientConnected(&HostCallback<&PluginModule::OnClientConnected>::Call, this));
     keep(events.OnClientDisconnected(&HostCallback<&PluginModule::OnClientDisconnected>::Call, this));
     keep(events.OnClientFullyConnected(&HostCallback<&PluginModule::OnClientFullyConnected>::Call, this));
@@ -277,6 +278,17 @@ void PluginModule::OnServerStartup(std::string_view mapName)
     _runtime->GameEvents.OnServerStartup();
     _runtime->Hooks.ClientConVars.OnServerStartup();
     _runtime->Map.Started.Raise(mapName);
+}
+
+bool PluginModule::OnClientConnecting(int slot, int64_t steamId, std::string_view name, char* reason, size_t reasonSize)
+{
+    ConnectRequest request{.Slot = slot, .SteamId = steamId, .Name = name};
+    _runtime->Players.Connecting.Raise(request);
+    if (request.Rejected)
+    {
+        Strings::CopyToBuffer(reason, reasonSize, request.Reason);
+    }
+    return request.Rejected;
 }
 
 void PluginModule::OnClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address)

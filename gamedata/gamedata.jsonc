@@ -1,5 +1,5 @@
 {
-  "$schema": "./gamedata.schema.json",
+  "$schema": "https://raw.githubusercontent.com/voltygg/voltmod/main/gamedata/gamedata.schema.json",
 
   // steam.inf ServerVersion the entries were checked on. See docs/sdk/gamedata.md.
   "build": {
