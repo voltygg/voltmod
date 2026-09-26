@@ -4,18 +4,28 @@
 
 What changed in each VoltMod release. Older history is in git.
 
-## Unreleased
+## 1.7.0 (2026-09-26)
 
 ### Breaking
 
 - Put `Game csgo/addons/voltmod` directly above `Game csgo` in `gameinfo.gi` (`voltmod serve` and
   `voltmod run` add it) and delete `addons/metamod/voltmod.vdf`: the engine now loads the framework
-  as `server_valve`, and Metamod is optional.
-- Rebuild every plugin against this release: the host ABI is now 4.
+  as `server_valve`, Metamod is optional, and every plugin must be rebuilt for host ABI 4.
 - Call `IHost::EngineInterface`, `ServerInterface` or `BaseDir` where you called `IHost::Metamod()`.
 - CMake 4.4 is required. `VOLTMOD_DISABLE_PCH` is gone; set `CMAKE_DISABLE_PRECOMPILE_HEADERS=ON` instead.
 - HTTP: send every request through `Http.Send`; the `Get`/`Post`/`Put`/`Patch`/`Delete` helpers
   are gone, and `HttpRequest::Headers` is a name-to-value map (`AddHeader` is gone).
+- Reference plugin images as `s2r://panorama/images/custom_game/<set>/<name>.vtex`, so the
+  Workshop addon packs them.
+
+### New
+
+- Hide an entity from a whole team with `HideFromTeam`, and let a trace pass through every part of
+  a prop with `TraceOptions::IgnoreOwnedBy`.
+
+### Fixed
+
+- Custom screens show their state again after a client finishes loading.
 
 ## 1.6.0 (2026-09-25)
 
