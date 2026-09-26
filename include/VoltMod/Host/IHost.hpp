@@ -24,8 +24,12 @@ struct IHost
     /** The plugin's `plugin.json` version. */
     virtual std::string_view Version() const = 0;
 
-    /** The host is the Metamod plugin and shares its own API pointer unchanged. */
-    virtual SourceMM::ISmmAPI* Metamod() const = 0;
+    /** An engine interface by its exact version name, or null. */
+    virtual void* EngineInterface(const char* version) const = 0;
+    /** A game server interface by its exact version name, or null. */
+    virtual void* ServerInterface(const char* version) const = 0;
+    /** The absolute `csgo` directory that relative paths resolve against. */
+    virtual std::string_view BaseDir() const = 0;
     /** Each module has its own `KHook::__exported__khook`; a plugin seeds it from this before hooking. */
     virtual KHook::IKHook* HookDispatcher() const = 0;
 

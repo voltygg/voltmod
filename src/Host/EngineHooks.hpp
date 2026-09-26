@@ -33,8 +33,8 @@ public:
     EngineHooks(const EngineHooks&) = delete;
     EngineHooks& operator=(const EngineHooks&) = delete;
 
-    /** Resolve the engine interfaces the hooks need from @p metamod, then install them. */
-    Status Install(SourceMM::ISmmAPI* metamod);
+    /** Resolve the engine interfaces the hooks need, then install them. */
+    Status Install();
 
     /** Remove every hook. Nothing reaches the plugins after this returns. */
     void Uninstall();

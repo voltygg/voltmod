@@ -82,7 +82,7 @@ public:
      *  transient slot - a menu row, an engine callback - becomes a storable identity. */
     PlayerRef RefFor(int slot);
 
-    /** @internal Roster mutation and lifecycle raising belong to the framework's Metamod
+    /** @internal Roster mutation and lifecycle raising belong to the framework's host
      *  callbacks (`Plugin`); a plugin that calls these desynchronizes the roster from
      *  the engine. */
     /** @{ */

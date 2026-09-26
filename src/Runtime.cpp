@@ -1,6 +1,5 @@
 #include "Schema/Layout.hpp"
 
-#include <ISmmAPI.h>
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Text/Json.hpp>
@@ -22,6 +21,15 @@
 
 namespace VoltMod
 {
+
+/** Copy @p text into the host's error buffer, cut to fit. */
+static void WriteError(const LoadContext& context, std::string_view text)
+{
+    if (context.MaxLen > 0)
+    {
+        *std::format_to_n(context.Error, context.MaxLen - 1, "{}", text).out = '\0';
+    }
+}
 
 Runtime::Runtime(IHostLanguages& languages) : _languages(languages) {}
 
@@ -77,28 +85,23 @@ void Runtime::InstallLogger(const LoadContext& context)
     Log::SetHandler(
         [host](LogLevel level, std::string_view message) { host->WriteLog(static_cast<uint8_t>(level), message); });
 
-    SetBaseDir(context.Host->Metamod()->GetBaseDir());
+    SetBaseDir(host->BaseDir());
 }
 
 bool Runtime::ResolveInterfaces(const LoadContext& context)
 {
-    ISmmAPI* ismm = context.Host->Metamod();
-
-    auto resolveEngine = [&](const char* version) -> void* {
-        return ismm->VInterfaceMatch(ismm->GetEngineFactory(), version, 0);
-    };
-    auto resolveServer = [&](const char* version) -> void* {
-        return ismm->VInterfaceMatch(ismm->GetServerFactory(), version, 0);
-    };
+    IHost* host = context.Host;
+    auto resolveEngine = [host](const char* version) { return host->EngineInterface(version); };
+    auto resolveServer = [host](const char* version) { return host->ServerInterface(version); };
 
     auto& gi = Unsafe.Interfaces;
 
-#define VOLTMOD_RESOLVE(field, factory, version)                                              \
-    gi.field = static_cast<decltype(gi.field)>(factory(version));                             \
-    if (!gi.field)                                                                            \
-    {                                                                                         \
-        ismm->Format(context.Error, context.MaxLen, "Could not find interface: %s", version); \
-        return false;                                                                         \
+#define VOLTMOD_RESOLVE(field, factory, version)                                   \
+    gi.field = static_cast<decltype(gi.field)>(factory(version));                  \
+    if (!gi.field)                                                                 \
+    {                                                                              \
+        WriteError(context, std::format("Could not find interface: {}", version)); \
+        return false;                                                              \
     }
 
     VOLTMOD_RESOLVE(ServerGameDLL, resolveServer, INTERFACEVERSION_SERVERGAMEDLL)
@@ -137,14 +140,14 @@ bool Runtime::InitializeServices(const LoadContext& context)
             [gameData](GameDataSection sections, std::string_view name) { return gameData->Lookup(sections, name); });
     });
 
-    // A required-step failure is reported to Metamod and aborts the load.
+    // A required-step failure is reported to the host and aborts the load.
     auto requiredStep = [&](std::string_view name, const std::function<VoltMod::Status()>& step) {
         if (steps.Required(name, step))
         {
             return true;
         }
 
-        context.Host->Metamod()->Format(context.Error, context.MaxLen, "%s", steps.AbortReason().c_str());
+        WriteError(context, steps.AbortReason());
         return false;
     };
 

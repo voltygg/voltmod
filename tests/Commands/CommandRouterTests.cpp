@@ -70,7 +70,9 @@ public:
 
     std::string_view Name() const override { return {}; }
     std::string_view Version() const override { return {}; }
-    SourceMM::ISmmAPI* Metamod() const override { return nullptr; }
+    void* EngineInterface(const char*) const override { return nullptr; }
+    void* ServerInterface(const char*) const override { return nullptr; }
+    std::string_view BaseDir() const override { return {}; }
     KHook::IKHook* HookDispatcher() const override { return nullptr; }
     VoltMod::IHostEvents& Events() override { std::abort(); }
     VoltMod::IHostServices& Services() override { std::abort(); }

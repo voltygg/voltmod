@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Host/HostStart.hpp"
 #include "Host/Plugins/CallbackList.hpp"
 #include "Host/Plugins/CommandNames.hpp"
 #include "Host/Plugins/LanguageTable.hpp"
@@ -27,8 +28,7 @@ namespace VoltMod
  */
 struct HostState
 {
-    SourceMM::ISmmAPI* Metamod = nullptr;
-    KHook::IKHook* HookDispatcher = nullptr;
+    HostStart Start;
     IHostGameData* GameData = nullptr;
 
     uint64_t SchemaLayoutStamp = 0;  ///< zero until the host has checked its own layout
@@ -86,7 +86,9 @@ public:
 
     std::string_view Name() const override;
     std::string_view Version() const override;
-    SourceMM::ISmmAPI* Metamod() const override;
+    void* EngineInterface(const char* version) const override;
+    void* ServerInterface(const char* version) const override;
+    std::string_view BaseDir() const override;
     KHook::IKHook* HookDispatcher() const override;
     IHostEvents& Events() override;
     IHostServices& Services() override;

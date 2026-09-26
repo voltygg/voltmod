@@ -26,14 +26,24 @@ std::string_view HostView::Version() const
     return _version;
 }
 
-SourceMM::ISmmAPI* HostView::Metamod() const
+void* HostView::EngineInterface(const char* version) const
 {
-    return _state.Metamod;
+    return _state.Start.EngineFactory(version, nullptr);
+}
+
+void* HostView::ServerInterface(const char* version) const
+{
+    return _state.Start.ServerFactory(version, nullptr);
+}
+
+std::string_view HostView::BaseDir() const
+{
+    return _state.Start.GameDir;
 }
 
 KHook::IKHook* HostView::HookDispatcher() const
 {
-    return _state.HookDispatcher;
+    return _state.Start.HookDispatcher;
 }
 
 IHostEvents& HostView::Events()

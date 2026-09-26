@@ -36,15 +36,14 @@ function(voltmod_set_cxx_defaults target)
     )
 endfunction()
 
-# A module the game process loads: the host, or a plugin the host loads. Built into OUTPUT_DIR
-# and installed to INSTALL_DIR under COMPONENT.
+# A module the game process loads: the loader, the host, or a plugin the host loads. Built into
+# OUTPUT_DIR and installed to INSTALL_DIR under COMPONENT.
 function(voltmod_add_module target)
     cmake_parse_arguments(ARG "" "OUTPUT_DIR;INSTALL_DIR;COMPONENT" "SOURCES" ${ARGN})
 
     add_library("${target}" MODULE ${ARG_SOURCES})
     voltmod_set_cxx_defaults("${target}")
     target_include_directories("${target}" PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-    hl2sdk_attach_plugin_support("${target}")
 
     # Release PDBs for crash dumps.
     target_link_options("${target}" PRIVATE

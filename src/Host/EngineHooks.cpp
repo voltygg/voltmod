@@ -63,15 +63,10 @@ EngineHooks::~EngineHooks()
     Uninstall();
 }
 
-Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
+Status EngineHooks::Install()
 {
-    if (metamod == nullptr)
-    {
-        return std::unexpected(Error::NotReady("the host has no Metamod API to resolve interfaces from"));
-    }
-
-    auto fromEngine = EngineInterfaces(metamod);
-    auto fromServer = ServerInterfaces(metamod);
+    const InterfaceFactory fromEngine = _host.Start().EngineFactory;
+    const InterfaceFactory fromServer = _host.Start().ServerFactory;
 
     IServerGameDLL* serverGameDLL = nullptr;
     IServerGameClients* serverGameClients = nullptr;
@@ -82,7 +77,7 @@ Status EngineHooks::Install(SourceMM::ISmmAPI* metamod)
 
     // Stops at the first failure.
     Status found;
-    auto resolve = [&found](auto*& target, auto& factory, const char* version) {
+    auto resolve = [&found](auto*& target, InterfaceFactory factory, const char* version) {
         if (found)
         {
             found = ResolveInterface(target, factory, version);

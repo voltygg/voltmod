@@ -42,6 +42,7 @@ function(voltmod_add_plugin target_name)
         COMPONENT "${target_name}"
     )
     target_link_libraries("${target_name}" PRIVATE VoltMod::Sdk)
+    hl2sdk_attach_plugin_support("${target_name}")
 
     set(pch_headers "<VoltMod/Api.hpp>")
     if(ARG_DATABASE)

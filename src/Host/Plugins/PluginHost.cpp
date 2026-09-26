@@ -6,9 +6,7 @@
 namespace VoltMod
 {
 
-PluginHost::PluginHost(SourceMM::ISmmAPI* metamod, KHook::IKHook* hookDispatcher, IHostGameData* gameData)
-    : _state{.Metamod = metamod, .HookDispatcher = hookDispatcher, .GameData = gameData}
-{}
+PluginHost::PluginHost(HostStart start, IHostGameData* gameData) : _state{.Start = start, .GameData = gameData} {}
 
 PluginHost::~PluginHost() = default;
 

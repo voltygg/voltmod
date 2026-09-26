@@ -13,7 +13,7 @@ class VoltModConan(ConanFile):
     name = "voltmod"
     author = "Sukhrob Ilyosbekov (suxrobgm@gmail.com)"
     version = "1.6.0"
-    description = "C++23 library for CS2 Metamod:Source plugins"
+    description = "C++23 framework for CS2 server plugins"
     license = "MIT"
     homepage = "https://github.com/voltygg/voltmod"
     settings: Any = "os", "compiler", "build_type", "arch"
@@ -43,9 +43,7 @@ class VoltModConan(ConanFile):
         self.requires("glaze/8.0.0", transitive_headers=True)
         self.requires("magic_enum/0.9.7", transitive_headers=True)
         self.requires("hl2sdk-cs2/[>=2026 <2028]", transitive_headers=True, transitive_libs=True)
-        self.requires(
-            "metamod-source/[>=2.0 <3]", transitive_headers=True, package_id_mode="minor_mode"
-        )
+        self.requires("khook/[>=2026 <2028]", transitive_headers=True)
         # All three connectors: the driver is chosen at runtime from config. Linking them
         # statically makes the LGPL MariaDB connector a relinkable-object obligation.
         self.requires("sqlpp23/0.70", transitive_headers=True, transitive_libs=True)
@@ -87,7 +85,7 @@ class VoltModConan(ConanFile):
         toolchain = CMakeToolchain(self)
         toolchain.user_presets_path = False
         toolchain.variables["CMAKE_POSITION_INDEPENDENT_CODE"] = True
-        # This recipe owns the version; the host reports it to Metamod.
+        # This recipe owns the version; the host reports it in its load line.
         toolchain.variables["VOLTMOD_VERSION"] = self.version
         # Via the toolchain so `cmake --preset`, `conan build` and `conan create` all get it.
         if shutil.which("ccache"):
@@ -130,7 +128,7 @@ class VoltModConan(ConanFile):
         sdk.requires = [
             "portable",
             "hl2sdk-cs2::hl2sdk-cs2",
-            "metamod-source::metamod-source",
+            "khook::headers",
             "cpr::cpr",
         ]
 

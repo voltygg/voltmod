@@ -1,15 +1,13 @@
 #pragma once
 
-#include <ISmmPlugin.h>
-
 #include <VoltMod/Engine/EngineTypes.hpp>
+#include <khook.hpp>
 
 // KHook's dispatch pointer, declared for every translation unit that installs a hook.
 //
-// Each module carries its own copy: KHook's entry points are defined in its header and resolve
-// this against the module they were compiled into. The host defines and fills its own through
-// Metamod; a plugin library defines its own in VOLTMOD_PLUGIN and the module seeds it from
-// IHost::HookDispatcher(). The declaration lives in Engine because vtable hooks must not depend on the
+// Each module carries its own copy, because KHook's header forwards every call through it. The
+// host fills its own from the loader; a plugin defines one in VOLTMOD_PLUGIN and seeds it from
+// IHost::HookDispatcher(). It lives in Engine because vtable hooks must not depend on the
 // composition root.
 namespace KHook
 {

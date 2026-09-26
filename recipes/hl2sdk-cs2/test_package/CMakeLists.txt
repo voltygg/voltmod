@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 4.3)
 project(hl2sdk-cs2-test LANGUAGES CXX)
 
 find_package(hl2sdk-cs2 CONFIG REQUIRED)

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 4.3)
 project(sqlpp23-test LANGUAGES CXX)
 
 find_package(Sqlpp23 CONFIG REQUIRED)

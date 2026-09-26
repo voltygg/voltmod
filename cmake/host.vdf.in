@@ -1,5 +1,0 @@
-"Metamod Plugin"
-{
-	"alias"	"voltmod"
-	"file"	"addons/voltmod/bin/@VOLTMOD_BIN_SUBDIR@/voltmod"
-}

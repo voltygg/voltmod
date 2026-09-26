@@ -17,13 +17,12 @@ namespace VoltMod
  *
  * Owns the @ref HostState every plugin's view reaches through. Game thread only, like everything
  * a plugin reaches; nothing here locks. Free of the SDK so it is unit-tested without the engine -
- * @p metamod, @p hookDispatcher and @p gameData are values it hands on unchanged.
+ * @p start and @p gameData are values it hands on unchanged.
  */
 class PluginHost
 {
 public:
-    explicit PluginHost(SourceMM::ISmmAPI* metamod = nullptr, KHook::IKHook* hookDispatcher = nullptr,
-                        IHostGameData* gameData = nullptr);
+    explicit PluginHost(HostStart start = {}, IHostGameData* gameData = nullptr);
     ~PluginHost();
 
     PluginHost(const PluginHost&) = delete;
@@ -37,6 +36,9 @@ public:
     Unreleased RemovePlugin(std::string_view name);
 
     HostView* FindPlugin(std::string_view name);
+
+    /** What the loader handed over: the factories, the hook dispatcher and the game directory. */
+    const HostStart& Start() const { return _state.Start; }
 
     /** The one gamedata resolution every plugin binds from, null when the host has none. */
     IHostGameData* GameData() const { return _state.GameData; }

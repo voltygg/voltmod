@@ -24,7 +24,7 @@ find_package(magic_enum CONFIG REQUIRED)
 find_package(Sqlpp23 CONFIG REQUIRED)
 
 find_package(hl2sdk-cs2 CONFIG REQUIRED)
-find_package(metamod-source CONFIG REQUIRED)
+find_package(khook CONFIG REQUIRED)
 
 # Everything that builds without the game SDK: the SDK and host link it, and tests run it.
 set(VOLTMOD_PORTABLE_SOURCES
@@ -96,12 +96,13 @@ if(WIN32)
     target_link_libraries(voltmod-portable PUBLIC psapi)
 endif()
 
-# The SDK is every other source module except Database and Host: Database is opt-in, and Host
-# belongs to the one process-wide host module, not to each plugin.
+# The SDK is every other source module except Database, Host and Loader: Database is opt-in, and
+# Host and Loader are the two process-wide modules, not part of each plugin.
 file(GLOB_RECURSE VOLTMOD_SDK_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM VOLTMOD_SDK_SOURCES ${VOLTMOD_PORTABLE_SOURCES})
 list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Database/")
 list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Host/")
+list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Loader/")
 
 # Schema offsets differ between the Windows and Linux builds of the game.
 if(WIN32)
@@ -114,6 +115,7 @@ file(GLOB_RECURSE VOLTMOD_HTTP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE
 file(GLOB_RECURSE VOLTMOD_DATABASE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Database/*.cpp")
 file(GLOB_RECURSE VOLTMOD_HOST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Host/*.cpp")
 list(REMOVE_ITEM VOLTMOD_HOST_SOURCES ${VOLTMOD_PORTABLE_SOURCES})
+file(GLOB_RECURSE VOLTMOD_LOADER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Loader/*.cpp")
 
 add_library(voltmod-sdk STATIC ${VOLTMOD_SDK_SOURCES})
 add_library(VoltMod::Sdk ALIAS voltmod-sdk)
@@ -122,7 +124,7 @@ voltmod_set_cxx_defaults(voltmod-sdk)
 target_include_directories(voltmod-sdk PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 # Keep cpr out of public headers.
 target_link_libraries(voltmod-sdk
-    PUBLIC VoltMod::Portable VoltMod::Metamod VoltMod::HL2SDK
+    PUBLIC VoltMod::Portable khook::headers VoltMod::HL2SDK
     PRIVATE cpr::cpr
 )
 hl2sdk_attach_engine_sources(voltmod-sdk)
@@ -131,7 +133,7 @@ hl2sdk_attach_generated_sources(voltmod-sdk)
 if(NOT VOLTMOD_DISABLE_PCH)
     # Exclude framework headers so source edits do not invalidate the PCH. Use protobuf's stable header.
     target_precompile_headers(voltmod-sdk PRIVATE
-        <ISmmPlugin.h>
+        <khook.hpp>
         <eiface.h>
         <icvar.h>
         <igameevents.h>
@@ -172,7 +174,7 @@ if(NOT VOLTMOD_DISABLE_PCH)
     )
 endif()
 
-# The host: the only Metamod plugin in the process, which loads the plugin modules itself.
+# The host: loads the plugin modules and serves them one set of engine hooks.
 voltmod_add_module(voltmod-host
     SOURCES ${VOLTMOD_HOST_SOURCES}
     OUTPUT_DIR "${CMAKE_BINARY_DIR}/host/${VOLTMOD_PLATFORM_ARCH}"
@@ -182,12 +184,23 @@ voltmod_add_module(voltmod-host
 set_target_properties(voltmod-host PROPERTIES OUTPUT_NAME "voltmod")
 target_compile_definitions(voltmod-host PRIVATE VOLTMOD_VERSION="${VOLTMOD_VERSION}")
 target_link_libraries(voltmod-host PRIVATE VoltMod::Sdk)
+hl2sdk_attach_plugin_support(voltmod-host)
 
-# One .vdf and one gamedata directory per server, both the host's.
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/host.vdf.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/voltmod.vdf" @ONLY NEWLINE_STYLE LF)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/voltmod.vdf"
-    DESTINATION "addons/metamod" COMPONENT host)
+# The loader: the engine loads it as `server_valve` ahead of the game's server, and it owns KHook.
+voltmod_add_module(voltmod-loader
+    SOURCES ${VOLTMOD_LOADER_SOURCES}
+    OUTPUT_DIR "${CMAKE_BINARY_DIR}/host/${VOLTMOD_PLATFORM_ARCH}"
+    INSTALL_DIR "addons/voltmod/bin/${VOLTMOD_BIN_SUBDIR}"
+    COMPONENT host
+)
+# libserver_valve.so on Linux: the engine looks for the platform's own prefix.
+set_target_properties(voltmod-loader PROPERTIES OUTPUT_NAME "server_valve" PREFIX "${CMAKE_SHARED_MODULE_PREFIX}")
+target_include_directories(voltmod-loader PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(voltmod-loader PRIVATE khook::khook VoltMod::HL2SDK)
+# Keep KHook, safetyhook and Zydis symbols local, so they cannot bind to another module's copy.
+target_link_options(voltmod-loader PRIVATE "$<$<PLATFORM_ID:Linux>:LINKER:--exclude-libs,ALL>")
+
+# One gamedata directory per server, the host's.
 install(DIRECTORY "${VOLTMOD_GAMEDATA_DIR}/"
     DESTINATION "addons/voltmod/gamedata" COMPONENT host)
 
@@ -212,5 +225,5 @@ if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
     target_compile_definitions(voltmod-api-surface-check PRIVATE VOLTMOD_API_SURFACE_CHECK)
     target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Sdk VoltMod::Database)
 
-    voltmod_add_tests(voltmod-tests DATABASE)
+    voltmod_add_tests(voltmod-tests DATABASE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/Loader/GameInfo.cpp")
 endif()

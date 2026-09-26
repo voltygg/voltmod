@@ -15,20 +15,16 @@ namespace VoltMod
 
 static constexpr std::string_view EntitySystemOffset = "GameEntitySystem";
 
-void SchemaService::Initialize(SourceMM::ISmmAPI* metamod, PluginHost& host, IHostGameData* gameData)
+void SchemaService::Initialize(PluginHost& host, IHostGameData* gameData)
 {
-    if (metamod != nullptr)
+    const InterfaceFactory fromEngine = host.Start().EngineFactory;
+    if (Status found = ResolveInterface(_schema, fromEngine, SCHEMASYSTEM_INTERFACE_VERSION); !found)
     {
-        auto fromEngine = EngineInterfaces(metamod);
-        if (Status found = ResolveInterface(_schema, fromEngine, SCHEMASYSTEM_INTERFACE_VERSION); !found)
-        {
-            Log::Error("Schema: {}", found.error().Detail);
-        }
-        if (Status found = ResolveInterface(_resources, fromEngine, GAMERESOURCESERVICESERVER_INTERFACE_VERSION);
-            !found)
-        {
-            Log::Error("Schema: {}", found.error().Detail);
-        }
+        Log::Error("Schema: {}", found.error().Detail);
+    }
+    if (Status found = ResolveInterface(_resources, fromEngine, GAMERESOURCESERVICESERVER_INTERFACE_VERSION); !found)
+    {
+        Log::Error("Schema: {}", found.error().Detail);
     }
 
     if (gameData != nullptr)

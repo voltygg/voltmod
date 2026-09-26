@@ -8,7 +8,7 @@ namespace VoltMod
 {
 
 /**
- * @brief Set the base directory for path resolution (typically from ISmmAPI::GetBaseDir()).
+ * @brief Set the base directory for path resolution (the host's `csgo` directory).
  * Must be called during initialization before any file loading.
  *
  * @param baseDir The base directory path to use for resolving relative paths.

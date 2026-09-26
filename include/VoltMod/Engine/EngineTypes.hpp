@@ -7,7 +7,7 @@
 
 #include <cstdint>
 
-// 1. SDK and Metamod types.
+// 1. SDK and KHook types.
 class CCheckTransmitInfo;
 class CCommand;
 class CEntityIdentity;
@@ -48,14 +48,9 @@ union CVValue_t;
 enum EConVarType : int16_t;
 enum NetChannelBufType_t : int8_t;
 
-namespace SourceMM
-{
-class ISmmAPI;
-}
-
 namespace KHook
 {
-/** Metamod's hook dispatcher, handed to each plugin through @ref VoltMod::IHost. */
+/** The loader's hook dispatcher, handed to each plugin through @ref VoltMod::IHost. */
 class IKHook;
 }  // namespace KHook
 
