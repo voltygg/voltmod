@@ -14,7 +14,7 @@ namespace $namespace
  */
 struct App final : VoltMod::Plugin
 {
-    using Plugin::Plugin;
+    explicit App(VoltMod::Runtime& runtime) : Plugin(runtime) {}
 
     /** Register commands. False aborts the plugin load. */
     bool Load() override;

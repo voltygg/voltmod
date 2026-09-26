@@ -37,7 +37,7 @@ operator reads.
 ```cpp
 struct App final : VoltMod::Plugin
 {
-    using Plugin::Plugin;
+    explicit App(VoltMod::Runtime& runtime) : Plugin(runtime) {}
 
     ConfigManager Config = VoltMod::LoadConfig<ConfigManager>(Runtime);
     BhopManager Bhop{Runtime, Config};   // built with the settings already loaded

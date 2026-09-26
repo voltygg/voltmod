@@ -10,7 +10,7 @@ What changed in each VoltMod release. Older history is in git.
 
 - Drop `VOLTMOD_PLUGIN` and `<VoltMod/App/PluginEntry.hpp>`: `voltmod_add_plugin` generates the entry
   point for the `<Namespace>::App` in `src/App.hpp`.
-- Replace the App constructor with `using Plugin::Plugin;` and load settings in the member initializer,
+- The App constructor only passes the `Runtime&` to `Plugin`; load settings in the member initializer,
   `ConfigManager Config = VoltMod::LoadConfig<ConfigManager>(Runtime);`. `Load` is optional, and a
   failed settings file refuses the plugin before it runs.
 - Subscribe to `Runtime.Map.Started` and `Runtime.Players.Said` where you overrode `OnServerStartup`
