@@ -121,7 +121,7 @@ TEST_CASE("The trampoline unpacks bound arguments back into the parameter list")
 
     TestLanguages languages;
     Translations texts{languages};
-    const Caller caller{.Player = nullptr, .Slot = -1, .Tr = texts, .Send = {}};
+    const Caller caller{.Player = nullptr, .Slot = -1, .Translations = texts, .Send = {}};
 
     const std::vector<BoundArg> full{Args::Int{7}, Args::Int{128}, Args::Rest{"why not"}};
     auto answered = installed.Def.Invoke(caller, full);
@@ -147,8 +147,9 @@ TEST_CASE("Caller Fail is a failure carrying both the key and the localized line
     TestLanguages languages;
     Translations texts{languages};
     std::vector<std::string> lines;
-    const Caller caller{
-        .Player = nullptr, .Slot = -1, .Tr = texts, .Send = [&lines](const std::string& l) { lines.push_back(l); }};
+    const Caller caller{.Player = nullptr, .Slot = -1, .Translations = texts, .Send = [&lines](const std::string& l) {
+                            lines.push_back(l);
+                        }};
 
     Result<Reply> failed = caller.Fail("target.immune", {{"token", "Bob"}});
     REQUIRE_FALSE(failed.has_value());
@@ -164,4 +165,52 @@ TEST_CASE("Caller Fail is a failure carrying both the key and the localized line
     REQUIRE(lines.size() == 2);
     CHECK(lines[0] == "You do not have permission to use this command.");
     CHECK(lines[1] == "  a row");
+}
+
+TEST_CASE("A handler that returns nothing succeeds without a reply")
+{
+    Installed installed;
+    int runs = 0;
+    installed.Builder("menu").Run([&runs](Caller) { ++runs; });
+
+    TestLanguages languages;
+    Translations texts{languages};
+    const Caller caller{.Player = nullptr, .Slot = -1, .Translations = texts, .Send = {}};
+    auto answered = installed.Def.Invoke(caller, {});
+    REQUIRE(answered.has_value());
+    CHECK(answered->Text.empty());
+    CHECK(runs == 1);
+}
+
+TEST_CASE("A handler returning both Ok and Fail needs no return type")
+{
+    Installed installed;
+    installed.Builder("check").Run([](Caller c, Args::Int n) {
+        if (n.Value < 0)
+        {
+            return c.Fail("cmd.badNumber", {{"token", "n"}});
+        }
+        return c.Ok("cmd.badNumber", {{"token", "ok"}});
+    });
+
+    TestLanguages languages;
+    Translations texts{languages};
+    const Caller caller{.Player = nullptr, .Slot = -1, .Translations = texts, .Send = {}};
+    const std::vector<BoundArg> negative{Args::Int{-1}};
+    CHECK_FALSE(installed.Def.Invoke(caller, negative).has_value());
+    const std::vector<BoundArg> positive{Args::Int{1}};
+    CHECK(installed.Def.Invoke(caller, positive).has_value());
+}
+
+TEST_CASE("Opt ValueOr and the Target arrow read the argument's own value")
+{
+    const Args::Opt<Args::Rest> typed{Args::Rest{"spam"}};
+    const Args::Opt<Args::Rest> omitted{};
+    CHECK(typed.ValueOr("default") == "spam");
+    CHECK(omitted.ValueOr("default") == "default");
+    CHECK(Args::Opt<Args::Int>{}.ValueOr(5) == 5);
+
+    VoltMod::Player player(3, 76561198000000003LL, "Bob", "", nullptr);
+    const Args::Target target{&player};
+    CHECK(target->Slot() == 3);
 }

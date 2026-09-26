@@ -6,18 +6,15 @@
 #include <VoltMod/Api.hpp>
 
 using VoltMod::Caller;
-using VoltMod::Reply;
-using VoltMod::Result;
 namespace Args = VoltMod::Args;
 
 runtime.Commands.Add("ban")
     .Describe("Ban a player.")
     .Alias("b")
     .Permission("b")
-    .Run([&app](Caller c, Args::Target t, Args::Duration d, Args::Opt<Args::Rest> why)
-             -> Result<Reply> {
-        std::string name = t.Value->Name();          // capture first: a ban drops the target
-        std::string reason = why.Value ? why.Value->Value : c.Tr.Get("reason.bannedByAdmin");
+    .Run([&app](Caller c, Args::Target t, Args::Duration d, Args::Opt<Args::Rest> why) {
+        std::string name = t->Name();                // capture first: a ban drops the target
+        std::string reason = why.ValueOr(c.Translations.Get("reason.bannedByAdmin"));
         if (!app.Ban(*c.Player, *t.Value, reason, d.Value))
             return c.Fail("cmd.banFailed");
         return c.Ok("cmd.banSuccess", {{"name", name}});
@@ -31,7 +28,7 @@ one command. The builder is single use: `Add` starts a new one.
 
 Per invocation the manager resolves the name or alias, authorizes the caller, checks arity,
 binds every argument, runs the handler, and routes the reply through `Policy::Reply` (falling
-back to `Messages::Reply`). Any failure stops before the handler and replies with a localized
+back to `Messages::Send`). Any failure stops before the handler and replies with a localized
 error.
 
 ## Argument types
@@ -40,7 +37,7 @@ Each handler parameter after the leading @ref VoltMod::Caller is one argument.
 
 | Parameter | Consumes | Read with |
 | --- | --- | --- |
-| `Args::Target` | one token via the selector grammar, one online player | `t.Value`, never null |
+| `Args::Target` | one token via the selector grammar, one online player | `t.Value`, never null; `t->Name()` reads through it |
 | `Args::Targets` | one token naming several players (`@all`, `@t`, ...) | `t.Value`, a `std::vector<Player*>`, never empty |
 | `Args::Duration` | `30` (minutes), `30s`/`5m`/`2h`/`7d`, `0`/`perm` | `d.Value`, a `std::chrono::seconds`; `0` means permanent |
 | `Args::SteamId` | numeric SteamID64 | `id.Value` |
@@ -49,7 +46,7 @@ Each handler parameter after the leading @ref VoltMod::Caller is one argument.
 | `Args::U64` | non-negative 64-bit id (a workshop id) | `n.Value` |
 | `Args::Word` | one verbatim token | `w.Value` |
 | `Args::Rest` | the remainder of the line | `r.Value` |
-| `Args::Opt<T>` | any of the above, optionally | `o.Value`, a `std::optional<T>` |
+| `Args::Opt<T>` | any of the above, optionally | `o.Value`, a `std::optional<T>`; `o.ValueOr(fallback)` for the inner value |
 
 Three rules are compile-time, and breaking one is a `static_assert` naming the signature: every
 parameter after `Caller` is an `Args::` type, only trailing arguments may be `Args::Opt`, and
@@ -61,26 +58,30 @@ no null check. `Args::Opt<T>` is the only argument that can be absent, and its d
 the handler:
 
 ```cpp
-std::string reason = why.Value ? why.Value->Value : c.Tr.Get("reason.kickedByAdmin");
+std::string reason = why.ValueOr(c.Translations.Get("reason.kickedByAdmin"));
 ```
 
-`c.Tr.Get(key)` with no slot resolves the server language, which is what a reason written to the
+`c.Translations.Get(key)` with no slot resolves the server language, which is what a reason written to the
 database or announced to everyone wants; `c.Ok`, `c.Fail` and `c.Say` resolve the caller's.
 
 ## Replying
 
 @ref VoltMod::Caller is the first parameter: `c.Player` is the player (null when the server ran
 the command, which `c.IsServer()` checks), `c.Slot` their slot (-1 for the server, which is also
-the server-language slot), and `c.Tr` the translation table.
+the server-language slot), and `c.Translations` the translation table.
 
 | Call | Result |
 | --- | --- |
 | `c.Ok(key, tokens)` | succeed, replying with `key` in the caller's language |
 | `c.Fail(key, tokens)` | fail, replying the same way; it is a `Result` error, not a success |
-| `Reply::Silent()` | handled, with nothing to say (a menu, a broadcast) |
+| return nothing | handled, with nothing to say (a menu, a broadcast) |
 | `c.Say(key, tokens)` | send one extra line now |
 | `c.SayRaw(line)` | send one already-formatted line now |
 | `c.Text(key, tokens)` | the localized line, to use for something other than a reply |
+
+A handler that returns `c.Ok` or `c.Fail` needs no return type. One that mixes them with silence
+returns `Reply::Silent()` for it and declares `-> Result<Reply>`, because a lambda cannot deduce a
+type from both a value and nothing.
 
 Multi-line output is a run of `Say`/`SayRaw` followed by `Ok` or `Reply::Silent()`, so it goes
 through the same reply callback as everything else:
@@ -124,10 +125,7 @@ files and `ExecuteServerCommand` reach the same handler:
 runtime.Commands.Add("bhop_player")
     .Describe("Grant/revoke session bhop for a player.")
     .ServerOnly()
-    .Run([this](Caller, Args::SteamId id, Args::Int on) -> Result<Reply> {
-        Grant(id.Value, on.Value != 0);
-        return Reply::Silent();
-    });
+    .Run([this](Caller, Args::SteamId id, Args::Int on) { Grant(id.Value, on.Value != 0); });
 ```
 
 Server console calls (rcon, cfg files) run the same binder and handler, print their reply to the

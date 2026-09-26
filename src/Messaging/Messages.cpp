@@ -142,14 +142,20 @@ void Messages::Broadcast(std::string_view message, MessageKind kind)
     PostTextMsg(filter, HudDestination(kind), rendered);
 }
 
-void Messages::Reply(int slot, std::string_view message)
+void Messages::SendKey(int slot, std::string_view key, const Tokens& tokens, MessageKind kind)
 {
-    Send(slot, message);
+    Send(slot, _translations.Get(key, slot, tokens), kind);
 }
 
-void Messages::ReplyKey(int slot, const std::string& key, const Tokens& tokens)
+void Messages::BroadcastKey(std::string_view key, const Tokens& tokens, MessageKind kind)
 {
-    Reply(slot, _translations.Get(key, slot, tokens));
+    for (int slot = 0; slot < MaxPlayers; ++slot)
+    {
+        if (_events.GetClientLegacyListener(slot))
+        {
+            SendKey(slot, key, tokens, kind);
+        }
+    }
 }
 
 void Messages::SendTextMsg(int slot, int destination, const std::string& message)

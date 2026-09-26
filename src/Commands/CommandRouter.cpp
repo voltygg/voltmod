@@ -233,7 +233,7 @@ void CommandRouter::Dispatch(const CommandDefinition& def, Player* caller, std::
         return;
     }
 
-    const Caller who{.Player = caller, .Slot = slot, .Tr = _translations, .Send = say};
+    const Caller who{.Player = caller, .Slot = slot, .Translations = _translations, .Send = say};
     auto result = def.Invoke(who, *bound);
     reply(result ? result->Text : FailureLine(result.error(), _translations, slot));
 }

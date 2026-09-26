@@ -23,8 +23,8 @@ enum class MessageKind
 /**
  * @brief Send chat, center print, center HTML, and alert messages.
  *
- * Chat sends preserve a leading color escape or prepend the default color. `ReplyKey` translates
- * a command reply for the player's language, substitutes tokens, and sends it to chat.
+ * Chat sends preserve a leading color escape or prepend the default color. `Send` and `Broadcast`
+ * send finished text; `SendKey` and `BroadcastKey` translate a key into each player's language.
  */
 class Messages
 {
@@ -42,11 +42,11 @@ public:
     /** Broadcast to connected human players. */
     void Broadcast(std::string_view message, MessageKind kind = MessageKind::Chat);
 
-    /** Chat reply to a command caller; shorthand for `Send(slot, message)`. */
-    void Reply(int slot, std::string_view message);
+    /** Translate @p key into @p slot's language, substitute @p tokens, and send it. */
+    void SendKey(int slot, std::string_view key, const Tokens& tokens = {}, MessageKind kind = MessageKind::Chat);
 
-    /** Translate @p key for the player's language, substitute @p tokens, and Reply. */
-    void ReplyKey(int slot, const std::string& key, const Tokens& tokens = {});
+    /** `SendKey` to every connected client, each in their own language. */
+    void BroadcastKey(std::string_view key, const Tokens& tokens = {}, MessageKind kind = MessageKind::Chat);
 
     /**
      * Shake @p slot's screen, the engine's own CUserMessageShake.

@@ -42,7 +42,8 @@ struct Caller
     VoltMod::Player* Player = nullptr;
     /** @ref Player's slot, or -1 for the console - which is also the server-language slot. */
     int Slot = -1;
-    Translations& Tr;
+    /** The plugin's translations. `Get(key)` with no slot resolves the server language. */
+    VoltMod::Translations& Translations;
     /** Sends a reply to chat or the console for the duration of the handler call. */
     std::function<void(const std::string&)> Send;
 
@@ -61,7 +62,7 @@ struct Caller
      * The error keeps @p key in `Key` and the localized line in `Text`. Errors from other
      * services carry only a key and are localized by dispatch.
      */
-    std::unexpected<Error> Fail(std::string_view key, Tokens tokens = {}) const;
+    Result<Reply> Fail(std::string_view key, Tokens tokens = {}) const;
 
     /** Send one extra localized line; finish a multi-line reply with `Ok` or `Reply::Silent`. */
     void Say(std::string_view key, Tokens tokens = {}) const;
@@ -124,7 +125,7 @@ template <class F>
 struct CommandHandlerArgs
 {
     static_assert(false,
-                  "A command handler takes (Caller, Args::...) and returns Result<Reply>. A generic lambda "
+                  "A command handler takes (Caller, Args::...) and returns Result<Reply> or nothing. A generic lambda "
                   "cannot be one: its parameter list is the argument specification, so the types have to be "
                   "written out.");
 };
@@ -176,10 +177,9 @@ struct CommandHandlerArgs<R (*)(Caller, A...) noexcept> : CommandHandlerArgs<R(C
  *     .Describe("Ban a player.")
  *     .Alias("b")
  *     .Permission("admin.ban")
- *     .Run([&app](Caller c, Args::Target t, Args::Duration d, Args::Opt<Args::Rest> why)
- *              -> Result<Reply> {
- *         std::string name = t.Value->Name();   // capture first: a ban drops the target
- *         std::string reason = why.Value ? why.Value->Value : c.Tr.Get("reason.bannedByAdmin");
+ *     .Run([&app](Caller c, Args::Target t, Args::Duration d, Args::Opt<Args::Rest> why) {
+ *         std::string name = t->Name();   // capture first: a ban drops the target
+ *         std::string reason = why.ValueOr(c.Translations.Get("reason.bannedByAdmin"));
  *         if (!app.Ban(*c.Player, *t.Value, reason, d.Value))
  *             return c.Fail("cmd.banFailed");
  *         return c.Ok("cmd.banSuccess", {{"name", name}});
@@ -245,7 +245,7 @@ public:
 
     /**
      * Install the command. The handler takes a @ref Caller and one `Args::` value per argument;
-     * that list defines arity, parsing, and usage.
+     * that list defines arity, parsing, and usage. A handler that returns nothing succeeds silently.
      *
      * The command is unregistered when @ref CommandManager is destroyed.
      */
@@ -263,9 +263,21 @@ private:
         static_assert(OptionalsTrail<A...>(), "Only trailing command arguments may be Args::Opt.");
         static_assert(RestIsLast<A...>(), "Args::Rest must be the last command argument.");
 
+        std::function<Result<Reply>(Caller, A...)> fn;
+        if constexpr (std::is_void_v<std::invoke_result_t<std::decay_t<F>&, Caller, A...>>)
+        {
+            fn = [h = std::forward<F>(handler)](Caller c, A... args) mutable -> Result<Reply> {
+                h(c, std::move(args)...);
+                return Reply::Silent();
+            };
+        }
+        else
+        {
+            fn = std::forward<F>(handler);
+        }
+
         _def.Args = DescribeArgs<A...>();
-        _def.Invoke = [fn = std::function<Result<Reply>(Caller, A...)>(std::forward<F>(handler))](
-                          const Caller& caller, std::span<const BoundArg> bound) {
+        _def.Invoke = [fn = std::move(fn)](const Caller& caller, std::span<const BoundArg> bound) {
             return Unpack(fn, caller, bound, std::index_sequence_for<A...>{});
         };
         _install(std::move(_def));

@@ -7,7 +7,7 @@ namespace VoltMod
 
 std::string Caller::Text(std::string_view key, Tokens tokens) const
 {
-    return tokens.empty() ? Tr.Get(std::string(key), Slot) : Tr.Get(std::string(key), Slot, tokens);
+    return tokens.empty() ? Translations.Get(std::string(key), Slot) : Translations.Get(std::string(key), Slot, tokens);
 }
 
 Result<Reply> Caller::Ok(std::string_view key, Tokens tokens) const
@@ -15,7 +15,7 @@ Result<Reply> Caller::Ok(std::string_view key, Tokens tokens) const
     return Reply{Text(key, std::move(tokens))};
 }
 
-std::unexpected<Error> Caller::Fail(std::string_view key, Tokens tokens) const
+Result<Reply> Caller::Fail(std::string_view key, Tokens tokens) const
 {
     // Localized now because Error has nowhere to hold `tokens` until reply time.
     return std::unexpected(

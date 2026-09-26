@@ -4,8 +4,6 @@
 
 // Keep targeted aliases in the .cpp; do not add using-directives or header aliases.
 using VoltMod::Caller;
-using VoltMod::Reply;
-using VoltMod::Result;
 
 namespace Args = VoltMod::Args;
 
@@ -16,7 +14,7 @@ namespace $namespace
 // immunity-checked arguments, and the manager owns each registration.
 void RegisterCommands(VoltMod::CommandManager& commands)
 {
-    commands.Add("ping").Describe("Check that the plugin is alive.").Run([](Caller c) -> Result<Reply> {
+    commands.Add("ping").Describe("Check that the plugin is alive.").Run([](Caller c) {
         return c.Ok("cmd.pong");
     });
 }

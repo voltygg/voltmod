@@ -7,17 +7,20 @@
 
 auto& msg = runtime.Messages;
 
-msg.Reply(slot, "Done.");                                   // chat, to one player
+msg.Send(slot, "Done.");                                    // chat, to one player
 msg.Send(slot, "Watch out!", VoltMod::MessageKind::Center);  // plain center print
 msg.Broadcast("Server restarting in 5 minutes.");            // chat, to every human player
 msg.Broadcast("Round of the day!", VoltMod::MessageKind::Alert);
 
-// Translate for the player's language, substitute tokens, and reply, in one call:
-msg.ReplyKey(slot, "cmd.banSuccess", {{"name", targetName}});
+// Translate into each player's language and substitute tokens, in one call:
+msg.SendKey(slot, "cmd.banSuccess", {{"name", targetName}});
+msg.BroadcastKey("round.mvp", {{"name", mvp}}, VoltMod::MessageKind::Center);
 ```
 
 @ref VoltMod::MessageKind picks the destination: `Chat`, `Center`, `CenterHtml` or `Alert`.
-`Reply` is `Send` with `Chat`; `runtime.Policy.Reply` usually forwards to it.
+`Send` and `Broadcast` send finished text; `SendKey` and `BroadcastKey` translate a key for each
+recipient, so a broadcast reaches every player in their own language. `runtime.Policy.Reply`
+usually forwards to `Send`.
 `Shake(slot, durationSec, frequency, amplitude)` shakes one player's view.
 
 Chat output keeps an existing leading color escape or prepends the default, so a line cannot

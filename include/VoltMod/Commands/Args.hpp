@@ -61,6 +61,8 @@ struct Target
 {
     static constexpr ArgKind Kind = ArgKind::Target;
     Player* Value = nullptr;
+
+    Player* operator->() const { return Value; }
 };
 
 /**
@@ -139,6 +141,13 @@ template <class T>
 struct Opt
 {
     std::optional<T> Value;
+
+    /** The argument's own value, or @p fallback when the caller omitted it. */
+    template <class U = T>
+    decltype(U::Value) ValueOr(decltype(U::Value) fallback) const
+    {
+        return Value ? Value->Value : std::move(fallback);
+    }
 };
 
 /** Every argument type, in @ref ArgKind order. The one list: @ref BoundArg takes its alternatives

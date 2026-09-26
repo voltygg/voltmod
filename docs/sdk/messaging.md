@@ -10,11 +10,11 @@ broadcasts.
 ```cpp
 auto& msg = runtime.Messages;
 
-msg.Reply(slot, "Hello!");                                 // chat line
+msg.Send(slot, "Hello!");                                  // chat line
 msg.Send(slot, "Look up", VoltMod::MessageKind::Center);   // plain center print
 msg.Send(slot, "<b>Notice</b>", VoltMod::MessageKind::CenterHtml);
 msg.Broadcast("Map change in 60s", VoltMod::MessageKind::Alert);
-msg.ReplyKey(slot, "punish.banned", {{"admin", name}});    // translated for the player's language
+msg.SendKey(slot, "punish.banned", {{"admin", name}});     // translated for the player's language
 
 msg.ClearCenterHtml(slot);
 msg.Shake(slot, 1.0f, 40.0f, 8.0f);                        // duration, frequency, amplitude

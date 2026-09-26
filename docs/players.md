@@ -119,7 +119,7 @@ Result<Authorized> Authorize(PlayerRef caller, std::optional<PlayerRef> target,
 auto who = runtime.Policy.Authorize(callerRef, targetRef, "b");
 if (!who)
 {
-    runtime.Messages.ReplyKey(callerSlot, who.error().Key);
+    runtime.Messages.SendKey(callerSlot, who.error().Key);
     return;
 }
 Ban(who->Target->SteamId());
@@ -135,7 +135,7 @@ Use it wherever a command binds `Args::PlayerOrSteamId` or a bare SteamID, rathe
 a plugin's own immunity table.
 
 `Policy::Reply` delivers a command result line and `Policy::Broadcast` announces a performed
-action; both are unset by default, and `Reply` then falls back to `runtime.Messages.Reply`.
+action; both are unset by default, and `Reply` then falls back to `runtime.Messages.Send`.
 
 ## Target selectors
 

@@ -59,7 +59,7 @@ public:
     std::function<bool(int64_t callerSteamId, int64_t targetSteamId)> CanTarget;
 
     /** Deliver a command result or error line (e.g. as a colored chat reply); unset falls back
-     *  to a plain `runtime.Messages.Reply`. */
+     *  to a plain `runtime.Messages.Send`. */
     std::function<void(int slot, std::string_view message)> Reply;
 
     /** Announce a performed action. */

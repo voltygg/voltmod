@@ -94,7 +94,7 @@ void CommandManager::ReplyToPlayer(int slot, const std::string& line)
     }
     else
     {
-        _messages.Reply(slot, line);
+        _messages.Send(slot, line);
     }
 }
 
