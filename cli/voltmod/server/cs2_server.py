@@ -10,7 +10,7 @@ CSGO_DIR = "game/csgo"
 STEAM_INF = f"{CSGO_DIR}/steam.inf"
 GAMEINFO = f"{CSGO_DIR}/gameinfo.gi"
 
-METAMOD_SEARCH_PATH = "csgo/addons/metamod"
+VOLTMOD_SEARCH_PATH = "csgo/addons/voltmod"
 _GAME_CSGO_LINE = re.compile(r"^([ \t]*)Game[ \t]+csgo[ \t]*(\r?)$", re.MULTILINE)
 
 
@@ -55,20 +55,20 @@ class Cs2Server:
         """The dotted version in steam.inf, which Steam's up-to-date check takes."""
         return self._steam_inf("PatchVersion")
 
-    def has_metamod_search_path(self) -> bool:
+    def has_voltmod_search_path(self) -> bool:
         gameinfo = self.root / GAMEINFO
-        return METAMOD_SEARCH_PATH in gameinfo.read_text(encoding="utf-8", errors="replace")
+        return VOLTMOD_SEARCH_PATH in gameinfo.read_text(encoding="utf-8", errors="replace")
 
-    def restore_metamod_search_path(self) -> bool:
-        """Put Metamod's line back above `Game csgo`; a CS2 update drops it from gameinfo.gi."""
+    def restore_voltmod_search_path(self) -> bool:
+        """Put VoltMod's line back above `Game csgo`; a CS2 update drops it from gameinfo.gi."""
         gameinfo = self.root / GAMEINFO
         text = gameinfo.read_bytes().decode("utf-8")
-        if METAMOD_SEARCH_PATH in text:
+        if VOLTMOD_SEARCH_PATH in text:
             return False
-        replacement = rf"\1Game\t{METAMOD_SEARCH_PATH}\2\n\g<0>"
+        replacement = rf"\1Game\t{VOLTMOD_SEARCH_PATH}\2\n\g<0>"
         patched, count = _GAME_CSGO_LINE.subn(replacement, text, count=1)
         if not count:
-            raise VoltmodError(f"{gameinfo} has no `Game csgo` line to put Metamod above")
+            raise VoltmodError(f"{gameinfo} has no `Game csgo` line to put VoltMod above")
         gameinfo.write_bytes(patched.encode("utf-8"))
         return True
 

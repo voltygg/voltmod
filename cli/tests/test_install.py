@@ -7,13 +7,13 @@ from voltmod.platforms import Platform
 from voltmod.project import Project
 from voltmod.server import install
 from voltmod.server.cs2_server import CSGO_DIR, Cs2Server
-from voltmod.server.install import HOST_GAMEDATA, HOST_VDF, host_binary, plugin_dir
+from voltmod.server.install import HOST_GAMEDATA, host_binary, loader_binary, plugin_dir
 
 PRESET = "windows-msvc-release"
 HOST_DLL = host_binary(Platform.WINDOWS)
 DEMO = plugin_dir("demo")
 
-HOST_FILES = (HOST_VDF, HOST_DLL, HOST_GAMEDATA)
+HOST_FILES = (loader_binary(Platform.WINDOWS), HOST_DLL, HOST_GAMEDATA)
 PLUGIN_FILES = (f"{DEMO}/demo.dll", f"{DEMO}/plugin.json")
 
 

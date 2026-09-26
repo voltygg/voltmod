@@ -38,8 +38,8 @@ def run_server(
     if update:
         update_game(steamcmd, server.root)
 
-    if server.restore_metamod_search_path():
-        console.note("Restored Metamod's search path in gameinfo.gi (a CS2 update removed it)")
+    if server.restore_voltmod_search_path():
+        console.note("Restored VoltMod's search path in gameinfo.gi (a CS2 update removed it)")
 
     executable = server.executable
     if executable is None:

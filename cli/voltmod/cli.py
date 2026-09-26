@@ -24,7 +24,7 @@ def _group(help: str) -> typer.Typer:
     return typer.Typer(help=help, no_args_is_help=True)
 
 
-app = _group("Build, run and check CS2 Metamod:Source plugin projects.")
+app = _group("Build, run and check CS2 plugin projects.")
 
 
 @app.callback()

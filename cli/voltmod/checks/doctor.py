@@ -11,7 +11,7 @@ from voltmod.framework.gamedata import parse_gamedata, read_gamedata
 from voltmod.platforms import Platform
 from voltmod.project import Project
 from voltmod.server.cs2_server import GAMEINFO, Cs2Server
-from voltmod.server.install import HOST_VDF, host_binary
+from voltmod.server.install import host_binary, loader_binary
 from voltmod.steam import CS2_APP
 from voltmod.toolchain.conan import PACKAGE_REMOTE, has_remote, profile_dirs
 from voltmod.toolchain.msvc import msvc_version
@@ -96,20 +96,18 @@ def _check_server(server: Cs2Server) -> Iterator[CheckResult]:
     else:
         yield CheckResult.fail("CS2 dedicated-server executable not found")
 
-    metamod = (f"addons/metamod/bin/{p.bin_dir}/server{p.library_suffix}" for p in Platform)
-    if any((game_dir / path).is_file() for path in metamod):
-        yield CheckResult.ok("Metamod installation found")
-    else:
-        yield CheckResult.warn("Metamod binary not found; install Metamod before loading plugins")
-
-    if (server.root / GAMEINFO).is_file() and not server.has_metamod_search_path():
+    if (server.root / GAMEINFO).is_file() and not server.has_voltmod_search_path():
         yield CheckResult.warn(
-            "gameinfo.gi lost Metamod's search path (a CS2 update rewrites it); "
+            "gameinfo.gi lost VoltMod's search path (a CS2 update rewrites it); "
             "`voltmod serve` restores it",
         )
 
-    installed = any((game_dir / host_binary(platform)).is_file() for platform in Platform)
-    if installed and (game_dir / HOST_VDF).is_file():
+    installed = any(
+        (game_dir / host_binary(platform)).is_file()
+        and (game_dir / loader_binary(platform)).is_file()
+        for platform in Platform
+    )
+    if installed:
         yield CheckResult.ok("VoltMod host installed")
     else:
         yield CheckResult.warn(

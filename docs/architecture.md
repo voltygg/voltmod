@@ -49,6 +49,7 @@ Http       -> Core
 Database   -> Core
 Unsafe     -> Core, Engine
 Host       -> Core, Engine, Unsafe
+Loader     -> Host
 App        -> every module
 ```
 

@@ -14,7 +14,7 @@ from voltmod.toolchain.process import run
 
 class SdkPackage(StrEnum):
     HL2SDK = "hl2sdk-cs2"
-    METAMOD = "metamod-source"
+    KHOOK = "khook"
 
 
 @dataclass(frozen=True)
@@ -29,9 +29,7 @@ UPSTREAMS = {
     SdkPackage.HL2SDK: Upstream(
         "https://github.com/alliedmodders/hl2sdk.git", "cs2", "{:%Y.%m.%d}"
     ),
-    SdkPackage.METAMOD: Upstream(
-        "https://github.com/alliedmodders/metamod-source.git", "master", "2.0.0.{:%Y%m%d}"
-    ),
+    SdkPackage.KHOOK: Upstream("https://github.com/Kenzzer/KHook.git", "master", "{:%Y.%m.%d}"),
 }
 
 

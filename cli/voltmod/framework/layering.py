@@ -33,6 +33,8 @@ ALLOWED_DEPENDENCIES: dict[str, set[str]] = {
     "Unsafe": {"Core", "Engine"},
     # Host installs for every plugin the engine hooks each used to install for itself.
     "Host": {"Core", "Engine", "Unsafe"},
+    # The server_valve module; it shares only HostStart with the host.
+    "Loader": {"Host"},
     "App": {
         "Core", "Engine", "Schema", "Entities", "Events", "Messaging", "Players", "Hooks",
         "Ui", "Workshop", "Commands", "Menu", "Http", "Database", "Unsafe", "Host",
@@ -49,7 +51,7 @@ COMPOSITION_ROOT_MODULES = {"App"}
 
 CORE_PATHS = ("include/VoltMod/Core/", "src/Core/")
 ENGINE_INCLUDE = re.compile(
-    r'#\s*include\s*[<"](ISmmPlugin\.h|tier0/|eiface\.h|entity2/|schemasystem/|icvar\.h|Color\.h)'
+    r'#\s*include\s*[<"](khook\.hpp|tier0/|eiface\.h|entity2/|schemasystem/|icvar\.h|Color\.h)'
 )
 
 # Named, not matched: a *Types.hpp pattern would also exempt EventTypes.hpp and ConVarTypes.hpp.
@@ -148,7 +150,10 @@ def check_layering(root: Path) -> tuple[dict[str, set[str]], list[CheckResult]]:
     if not include_root.is_dir():
         raise VoltmodError(f"no {INCLUDE_ROOT.as_posix()} under {root.resolve()}")
 
-    modules = sorted(path.name for path in include_root.iterdir() if path.is_dir())
+    # Loader has no public headers, so a module is a directory under either root.
+    modules = sorted(
+        {path.name for base in SOURCE_DIRS for path in (root / base).iterdir() if path.is_dir()}
+    )
     files = list(read_sources(root, SOURCE_DIRS))
     dependencies, evidence = module_dependencies(files, modules)
 

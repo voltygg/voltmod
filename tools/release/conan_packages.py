@@ -6,7 +6,7 @@ from typing import Any
 from voltmod.errors import VoltmodError
 from voltmod.platforms import Platform
 from voltmod.project import default_preset
-from voltmod.server.install import HOST_GAMEDATA, HOST_VDF, host_binary
+from voltmod.server.install import HOST_GAMEDATA, host_binary, loader_binary
 from voltmod.toolchain.conan import (
     PACKAGE_REMOTE,
     PREBUILT_SDK_ARGS,
@@ -18,11 +18,11 @@ from voltmod.toolchain.msvc import msvc_version
 from voltmod.toolchain.process import WINDOWS, run_tool
 
 # In dependency order.
-SDK_PACKAGES = ("metamod-source", "hl2sdk-cs2", "sqlpp23")
+SDK_PACKAGES = ("khook", "hl2sdk-cs2", "sqlpp23")
 FRAMEWORK_PACKAGE = "voltmod"
 
 # Their package id is platform-neutral, so only the Linux runner uploads them.
-HEADER_ONLY_PACKAGES = frozenset({"metamod-source", "sqlpp23"})
+HEADER_ONLY_PACKAGES = frozenset({"sqlpp23"})
 
 
 def log_in(root: Path) -> None:
@@ -136,9 +136,9 @@ def _required_files(settings: dict[str, Any]) -> tuple[str, ...]:
         f"lib/{prefix}voltmod-portable{suffix}",
         f"lib/{prefix}voltmod-sdk{suffix}",
         f"lib/{prefix}voltmod-database{suffix}",
-        # Nothing links the host, so a packaging mistake in it only shows on a live server.
+        # Nothing links the host or the loader; a packaging mistake only shows on a live server.
         host_binary(platform),
-        HOST_VDF,
+        loader_binary(platform),
         HOST_GAMEDATA,
         "include/VoltMod/Api.hpp",
         "cmake/VoltModPlugin.cmake",

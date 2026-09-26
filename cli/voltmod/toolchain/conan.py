@@ -10,8 +10,8 @@ from voltmod.toolchain.process import WINDOWS, run_tool, tool_output
 
 PACKAGE_REMOTE = "volty"
 
-# Linux CI must consume the published SDK binaries.
-PREBUILT_SDK_ARGS = () if WINDOWS else ("--build=!hl2sdk-cs2/*", "--build=!metamod-source/*")
+# Linux CI must consume the published hl2sdk binaries; khook builds from source in seconds.
+PREBUILT_SDK_ARGS = () if WINDOWS else ("--build=!hl2sdk-cs2/*",)
 
 
 def conan_json(*args: str | Path) -> Any:

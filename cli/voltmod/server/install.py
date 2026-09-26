@@ -10,12 +10,11 @@ from voltmod.server.cs2_server import CSGO_DIR, Cs2Server
 from voltmod.toolchain.conan import linked_checkout
 from voltmod.toolchain.process import run_tool
 
-# The host is the only Metamod plugin: one per server, loading modules from its plugins directory.
+# One host per server, started by the loader and loading modules from its plugins directory.
 # Paths below are relative to the game directory.
 HOST_COMPONENT = "host"
 HOST_ADDON_DIR = "addons/voltmod"
 PLUGINS_DIR = f"{HOST_ADDON_DIR}/plugins"
-HOST_VDF = "addons/metamod/voltmod.vdf"
 HOST_GAMEDATA = f"{HOST_ADDON_DIR}/gamedata/gamedata.jsonc"
 
 # Written by a server running voltmod once a map runs; relative to the install root.
@@ -24,6 +23,12 @@ SCHEMA_DUMP = f"{CSGO_DIR}/{HOST_ADDON_DIR}/schema/server.json"
 
 def host_binary(platform: Platform) -> str:
     return f"{HOST_ADDON_DIR}/bin/{platform.bin_dir}/voltmod{platform.library_suffix}"
+
+
+def loader_binary(platform: Platform) -> str:
+    """The module the engine loads as `server_valve` through VoltMod's gameinfo.gi line."""
+    prefix = "lib" if platform is Platform.LINUX else ""
+    return f"{HOST_ADDON_DIR}/bin/{platform.bin_dir}/{prefix}server_valve{platform.library_suffix}"
 
 
 def plugin_dir(name: str) -> str:
@@ -48,7 +53,7 @@ def install_plugins(project: Project, server: Cs2Server, names: list[str], prese
 
 
 def _install_host(project: Project, game_dir: Path, preset: str) -> None:
-    """Install the host: the only Metamod plugin, which loads its managed plugins."""
+    """Install the loader, the host it starts, and the host's gamedata."""
     console.section("voltmod host")
     # A linked framework checkout builds the host in its own tree.
     checkout = linked_checkout(project.root)
