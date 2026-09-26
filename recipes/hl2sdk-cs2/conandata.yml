@@ -1,4 +1,4 @@
 sources:
-  "2026.09.25":
+  "2026.09.25.1":
     url: "https://github.com/alliedmodders/hl2sdk.git"
-    commit: "2fa8e05360e70c395712a362e8abd10fc9db78d0"
+    commit: "394a726dcf4e805489c32cf90da50bb6e1b8a253"
