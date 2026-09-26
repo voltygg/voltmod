@@ -4,30 +4,37 @@
 
 ## GameEvents
 
-Subscribe with `On<T>` and a typed event from `<VoltMod/Events/EventTypes.hpp>`. Each struct names
-the engine event and decodes its fields.
+Subscribe with `On<T>` and a typed event from `<VoltMod/Events/EventTypes.hpp>`. Every event the
+game defines has a struct, generated from its `.gameevents` files; each names the engine event in
+`EventName` and decodes its fields in `From`.
 
 ```cpp
 using VoltMod::PlayerDeath;
 
 // Keep `death` beside the state the handler captures.
 auto death = runtime.GameEvents.On<PlayerDeath>([](const PlayerDeath& e) {
-    // e.VictimSlot, e.AttackerSlot, e.Headshot, e.Weapon, e.Penetrated, ...
+    // e.Slot (who died), e.AttackerSlot, e.Headshot, e.Weapon, e.Penetrated, ...
 });
 ```
 
-There is no string subscription API. Consuming an event that is not modeled means adding its struct
-to `EventTypes.hpp` first:
+There is no string subscription API, and none is needed. The names are generated, never chosen:
 
-```cpp
-struct BombPlanted
-{
-    static constexpr std::string_view Name = "bomb_planted";
-    int Slot = -1;
-    int Site = 0;
-    static BombPlanted From(IGameEvent& e);
-};
-```
+| Engine | C++ |
+| --- | --- |
+| event `bomb_planted` | struct `BombPlanted` |
+| key `dmg_health`, `oldteam` | `DmgHealth`, `Oldteam` |
+| player key `userid` | `Slot`, the player the event is about |
+| any other player key, such as `attacker` | `AttackerSlot` |
+| `team`, `oldteam`, `hitgroup` | `VoltMod::Team`, `VoltMod::HitGroup` |
+
+`On<T>` never calls a handler with an invalid `Slot`, so a handler indexes per-slot state without a
+guard; an optional party such as `AttackerSlot` stays -1 when absent. `player_pawn` and `ehandle`
+fields are left out as `// skipped:` comments until a plugin needs one.
+
+After a game update, regenerate the pair with
+`uv run voltmod framework eventgen --server C:/cs2-server` (it reads the VPKs under the server, like
+`schemagen` reads its dump) and commit the result. `bullet_impact` is written by hand in
+`Events/BulletImpact.hpp`, which the generated header includes.
 
 `CreateEvent` / `FireEvent` / `FreeEvent` create and fire events; the center-HTML transport is built
 on exactly that.
@@ -43,7 +50,7 @@ wallbang.
 ### BulletImpact: correlate by tick, not identity
 
 @ref VoltMod::BulletImpact fires once per bullet landing, but the engine truncates `userid` to one
-byte, so `Slot` is best effort and may be `-1` or name the wrong player. Correlate impacts by tick
+byte, so `ShooterSlot` is best effort and may be `-1` or name the wrong player. Correlate impacts by tick
 and use `TruncatedUserId` only to disambiguate candidates.
 
 ```cpp

@@ -508,6 +508,7 @@ dependencies = [
     { name = "pyparsing" },
     { name = "python-dotenv" },
     { name = "typer" },
+    { name = "vpk" },
 ]
 
 [package.dev-dependencies]
@@ -527,6 +528,7 @@ requires-dist = [
     { name = "pyparsing", specifier = ">=3.3" },
     { name = "python-dotenv", specifier = ">=1.2.0" },
     { name = "typer", specifier = ">=0.27.1" },
+    { name = "vpk", specifier = ">=1.4.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -534,4 +536,13 @@ dev = [
     { name = "poethepoet", specifier = ">=0.47.0" },
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "ruff", specifier = ">=0.14.0" },
+]
+
+[[package]]
+name = "vpk"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/70/d4/567a1c46a4c1efc646454868cfffa81e87760663cfddcc28dc9d273fb5ac/vpk-1.4.0.tar.gz", hash = "sha256:32ce0a2ca74f29e6b6614dc6e56b7724181c7b011f4de6040a138d4d8fe97040", size = 11516, upload-time = "2021-12-24T15:10:52.326Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/39/b9/b87009a8ad0db87d1b14bb0b2b474254b18ba740057f4ba8bae7cc790e5d/vpk-1.4.0-py2.py3-none-any.whl", hash = "sha256:021a40fa28eece9909dfce6f2b55abfd39fff22ac4a4a18ddf7a10afa4c1232f", size = 11168, upload-time = "2021-12-24T15:10:50.616Z" },
 ]

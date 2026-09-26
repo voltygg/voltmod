@@ -88,6 +88,10 @@ Metamod is installed), then
 `/files/download` returns a signed URL), then `framework schemagen --platform linux --dump <file>`.
 A panel server is production: ask before restarting it (`poe deploy restart` in cs2-plugins).
 
+Then regenerate the game event structs from the same server's VPKs:
+`uv run voltmod framework eventgen --server C:/cs2-server`. Review the diff: a renamed or removed
+event field breaks the plugins that read it.
+
 ## 6. Prove it
 
 Set `build.server` and `build.verified` in `gamedata.jsonc` and run `check` on both platforms.

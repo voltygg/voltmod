@@ -4,7 +4,8 @@ from typing import Annotated
 import typer
 
 from voltmod import console
-from voltmod.files import read_json
+from voltmod.files import read_json, write_if_changed
+from voltmod.framework.eventgen import read_events, render_events
 from voltmod.framework.game_builds import (
     archive_dir,
     archive_resolved,
@@ -24,6 +25,7 @@ from voltmod.platforms import Platform
 from voltmod.project import Project
 from voltmod.server.cs2_server import Cs2Server
 from voltmod.server.install import SCHEMA_DUMP
+from voltmod.toolchain.clang_format import format_cpp_files
 
 GameDir = Annotated[
     Path | None,
@@ -57,6 +59,19 @@ def schemagen_command(
     output = render_schema(read_json(dump_file, "dump"), manifest, platform)
     write_schema(project.root, output.files, platform)
     console.done(output.summary)
+
+
+def eventgen_command(server: ServerDir = None) -> None:
+    """Regenerate the game event structs from the server's .gameevents files."""
+    project = Project.load()
+    events = read_events(Cs2Server.open(server).root)
+    paths = []
+    for relative, text in render_events(events).items():
+        write_if_changed(project.root / relative, text)
+        paths.append(project.root / relative)
+    format_cpp_files(paths)
+    skipped = sum(len(event.skipped) for event in events)
+    console.done(f"eventgen: {len(events)} events, {skipped} fields skipped")
 
 
 def gamedata_check_command(

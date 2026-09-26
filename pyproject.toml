@@ -16,6 +16,7 @@ dependencies = [
     "pyparsing>=3.3",
     "python-dotenv>=1.2.0",
     "typer>=0.27.1",
+    "vpk>=1.4.0",
 ]
 
 [project.scripts]

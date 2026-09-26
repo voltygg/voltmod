@@ -27,6 +27,10 @@ What changed in each VoltMod release. Older history is in git.
 - `Action`, `ActionDispatcher`, `EffectDescriptor`, `EffectDispatcher`, `EffectManager` and
   `ActionRows` left the framework, and `Policy::Broadcast` with them.
 
+- Game event structs are generated for every event: the player an event is about is `Slot`
+  (`PlayerDeath::VictimSlot` and `PlayerHurt::VictimSlot` included), `PlayerHurt::Hitbox` is `Hitgroup`,
+  `PlayerTeam::OldTeam` is `Oldteam`, `BulletImpact::Slot` is `ShooterSlot`, and each struct's `Name` is
+  `EventName`. `GameEvents::On` drops an event whose `Slot` is invalid.
 - Rebuild every plugin: the host ABI is now 5 (`IHostEvents::OnClientConnecting`).
 
 ### New

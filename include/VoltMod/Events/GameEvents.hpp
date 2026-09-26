@@ -5,6 +5,7 @@
 #include <VoltMod/Core/Result.hpp>
 #include <VoltMod/Core/Signals/CallbackRegistry.hpp>
 #include <VoltMod/Core/Signals/Subscription.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Engine/EngineTypes.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
@@ -40,17 +41,27 @@ public:
     /**
      * Subscribe to one game event for as long as the returned Subscription lives.
      *
-     * @p TEvent must be a struct from `<VoltMod/Events/EventTypes.hpp>` carrying `Name` and `From`.
-     * Add a struct there before consuming an event not already modeled.
+     * @p TEvent is a struct from `<VoltMod/Events/EventTypes.hpp>`, generated for every game event. An
+     * event whose `Slot` (the player it is about) is not a valid slot never reaches @p handler.
      */
     template <class TEvent>
     [[nodiscard]] Subscription On(std::function<void(const TEvent&)> handler)
     {
-        return Add(TEvent::Name, [h = std::move(handler)](IGameEvent* e) {
-            if (e)
+        return Add(TEvent::EventName, [h = std::move(handler)](IGameEvent* e) {
+            if (!e)
             {
-                h(TEvent::From(*e));
+                return;
             }
+            const TEvent event = TEvent::From(*e);
+            // The player an event is about is always a valid slot for its handler.
+            if constexpr (requires { event.Slot; })
+            {
+                if (!IsValidSlot(event.Slot))
+                {
+                    return;
+                }
+            }
+            h(event);
         });
     }
 

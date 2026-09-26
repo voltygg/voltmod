@@ -77,6 +77,7 @@ gamedata.command("fetch")(framework.gamedata_fetch_command)
 
 framework_group = _group("Maintain the VoltMod checkout itself.")
 framework_group.command("schemagen")(framework.schemagen_command)
+framework_group.command("eventgen")(framework.eventgen_command)
 framework_group.add_typer(gamedata, name="gamedata")
 app.add_typer(framework_group, name="framework")
 
