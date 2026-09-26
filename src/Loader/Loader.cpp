@@ -29,6 +29,7 @@ static HostStopFn g_stopHost = nullptr;
 static bool (*g_connect)(void* config, InterfaceFactory engineFactory) = nullptr;
 static void (*g_disconnect)(void* config) = nullptr;
 static InitReturnVal_t (*g_init)(void* server) = nullptr;
+static void (*g_shutdown)(void* server) = nullptr;
 
 /** Put @p replacement in slot @p index of @p object's vtable, and return what the slot held. */
 template <class Fn>
@@ -158,12 +159,24 @@ static InitReturnVal_t OnInit(void* server)
     return g_init(server);
 }
 
-static void OnDisconnect(void* config)
+static void StopHost()
 {
     if (g_stopHost != nullptr)
     {
         std::exchange(g_stopHost, nullptr)();
     }
+}
+
+static void OnShutdown(void* server)
+{
+    // Here, not at Disconnect: by then the engine has shut down and a plugin's console command crashes it.
+    StopHost();
+    g_shutdown(server);
+}
+
+static void OnDisconnect(void* config)
+{
+    StopHost();
     // Safe: this slot was swapped, not hooked through KHook.
     KHook::Shutdown();
     g_disconnect(config);
@@ -181,6 +194,7 @@ static void Patch(const char* name, void* object)
         // The game's own factory: asking Metamod's loader for this would patch Init again.
         g_start.ServerFactory = FactoryAt(*static_cast<void**>(object));
         g_init = SwapSlot(object, KHook::GetVtableIndex(&ISource2Server::Init), &OnInit);
+        g_shutdown = SwapSlot(object, KHook::GetVtableIndex(&ISource2Server::Shutdown), &OnShutdown);
     }
 }
 
