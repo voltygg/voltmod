@@ -1,13 +1,12 @@
-cmake_minimum_required(VERSION 4.3)
+cmake_minimum_required(VERSION 4.4)
 
-# The toolchain sets this without FORCE, so an existing build tree would keep a bumped version's old value.
-unset(VOLTMOD_VERSION CACHE)
+# The toolchain does not FORCE this, so clear the value an existing build tree kept.
+unset(CACHE{VOLTMOD_VERSION})
 
-project(voltmod LANGUAGES CXX)
+# CMAKE_DISABLE_PRECOMPILE_HEADERS=ON turns the PCHs off, e.g. for ccache hits on MSVC.
+project(voltmod LANGUAGES CXX SPDX_LICENSE MIT)
 
-option(VOLTMOD_DISABLE_PCH "Disable precompiled headers (e.g. to favor ccache hits over PCH on MSVC)" OFF)
-
-# conanfile.py owns the framework version; its toolchain passes it in for the host to report.
+# conanfile.py owns the version and passes it in through the toolchain.
 if(NOT VOLTMOD_VERSION)
     message(FATAL_ERROR "VOLTMOD_VERSION is not set: configure through a preset, which uses the Conan toolchain")
 endif()
@@ -26,7 +25,7 @@ find_package(Sqlpp23 CONFIG REQUIRED)
 find_package(hl2sdk-cs2 CONFIG REQUIRED)
 find_package(khook CONFIG REQUIRED)
 
-# Everything that builds without the game SDK: the SDK and host link it, and tests run it.
+# Builds without the game SDK: the SDK and host link it, and the tests run it.
 set(VOLTMOD_PORTABLE_SOURCES
     src/App/ServiceExchange.cpp
     src/Commands/CommandBuilder.cpp
@@ -91,18 +90,15 @@ target_include_directories(voltmod-portable
     PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 target_link_libraries(voltmod-portable PUBLIC glaze::glaze magic_enum::magic_enum)
-# Module scanning needs the platform loader library.
+# Signature scans enumerate modules through psapi.
 if(WIN32)
     target_link_libraries(voltmod-portable PUBLIC psapi)
 endif()
 
-# The SDK is every other source module except Database, Host and Loader: Database is opt-in, and
-# Host and Loader are the two process-wide modules, not part of each plugin.
+# Every other source except Database (opt-in) and the process-wide Host and Loader.
 file(GLOB_RECURSE VOLTMOD_SDK_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM VOLTMOD_SDK_SOURCES ${VOLTMOD_PORTABLE_SOURCES})
-list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Database/")
-list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Host/")
-list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Loader/")
+list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/(Database|Host|Loader)/")
 
 # Schema offsets differ between the Windows and Linux builds of the game.
 if(WIN32)
@@ -130,29 +126,27 @@ target_link_libraries(voltmod-sdk
 hl2sdk_attach_engine_sources(voltmod-sdk)
 hl2sdk_attach_generated_sources(voltmod-sdk)
 
-if(NOT VOLTMOD_DISABLE_PCH)
-    # Exclude framework headers so source edits do not invalidate the PCH. Use protobuf's stable header.
-    target_precompile_headers(voltmod-sdk PRIVATE
-        <khook.hpp>
-        <eiface.h>
-        <icvar.h>
-        <igameevents.h>
-        <entity2/entitysystem.h>
-        <tier1/convar.h>
-        <google/protobuf/message.h>
-        <glaze/json.hpp>
-        <chrono>
-        <format>
-        <functional>
-        <memory>
-        <string>
-        <string_view>
-        <unordered_map>
-        <vector>
-    )
-    # HTTP sources need winsock2.h before windows.h.
-    set_source_files_properties(${VOLTMOD_HTTP_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
-endif()
+# Third-party headers only, so framework edits keep the PCH valid.
+target_precompile_headers(voltmod-sdk PRIVATE
+    <khook.hpp>
+    <eiface.h>
+    <icvar.h>
+    <igameevents.h>
+    <entity2/entitysystem.h>
+    <tier1/convar.h>
+    <google/protobuf/message.h>
+    <glaze/json.hpp>
+    <chrono>
+    <format>
+    <functional>
+    <memory>
+    <string>
+    <string_view>
+    <unordered_map>
+    <vector>
+)
+# HTTP sources need winsock2.h before windows.h.
+set_source_files_properties(${VOLTMOD_HTTP_SOURCES} PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 
 add_library(voltmod-database STATIC ${VOLTMOD_DATABASE_SOURCES})
 add_library(VoltMod::Database ALIAS voltmod-database)
@@ -162,19 +156,17 @@ target_link_libraries(voltmod-database PUBLIC
     VoltMod::Portable sqlpp23::postgresql sqlpp23::mysql sqlpp23::sqlite3)
 # The MariaDB connector needs winsock2.h before the windows.h other headers pull in.
 target_compile_definitions(voltmod-database PUBLIC $<$<PLATFORM_ID:Windows>:NOMINMAX WIN32_LEAN_AND_MEAN>)
-if(NOT VOLTMOD_DISABLE_PCH)
-    target_precompile_headers(voltmod-database PRIVATE
-        <sqlpp23/sqlpp23.h>
-        <sqlpp23/postgresql/postgresql.h>
-        <sqlpp23/mysql/mysql.h>
-        <sqlpp23/sqlite3/sqlite3.h>
-        <format>
-        <string>
-        <vector>
-    )
-endif()
+target_precompile_headers(voltmod-database PRIVATE
+    <sqlpp23/sqlpp23.h>
+    <sqlpp23/postgresql/postgresql.h>
+    <sqlpp23/mysql/mysql.h>
+    <sqlpp23/sqlite3/sqlite3.h>
+    <format>
+    <string>
+    <vector>
+)
 
-# The host: loads the plugin modules and serves them one set of engine hooks.
+# The host loads the plugins and serves them one set of engine hooks.
 voltmod_add_module(voltmod-host
     SOURCES ${VOLTMOD_HOST_SOURCES}
     OUTPUT_DIR "${CMAKE_BINARY_DIR}/host/${VOLTMOD_PLATFORM_ARCH}"
@@ -186,21 +178,21 @@ target_compile_definitions(voltmod-host PRIVATE VOLTMOD_VERSION="${VOLTMOD_VERSI
 target_link_libraries(voltmod-host PRIVATE VoltMod::Sdk)
 hl2sdk_attach_plugin_support(voltmod-host)
 
-# The loader: the engine loads it as `server_valve` ahead of the game's server, and it owns KHook.
+# The engine loads this as `server_valve`, ahead of the game's server. It owns KHook.
 voltmod_add_module(voltmod-loader
     SOURCES ${VOLTMOD_LOADER_SOURCES}
     OUTPUT_DIR "${CMAKE_BINARY_DIR}/host/${VOLTMOD_PLATFORM_ARCH}"
     INSTALL_DIR "addons/voltmod/bin/${VOLTMOD_BIN_SUBDIR}"
     COMPONENT host
 )
-# libserver_valve.so on Linux: the engine looks for the platform's own prefix.
+# The engine wants libserver_valve.so on Linux.
 set_target_properties(voltmod-loader PROPERTIES OUTPUT_NAME "server_valve" PREFIX "${CMAKE_SHARED_MODULE_PREFIX}")
 target_include_directories(voltmod-loader PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(voltmod-loader PRIVATE khook::khook VoltMod::HL2SDK)
-# Keep KHook, safetyhook and Zydis symbols local, so they cannot bind to another module's copy.
+# Keep KHook, safetyhook and Zydis symbols local, so they never bind to another module's copy.
 target_link_options(voltmod-loader PRIVATE "$<$<PLATFORM_ID:Linux>:LINKER:--exclude-libs,ALL>")
 
-# One gamedata directory per server, the host's.
+# Gamedata ships once, with the host.
 install(DIRECTORY "${VOLTMOD_GAMEDATA_DIR}/"
     DESTINATION "addons/voltmod/gamedata" COMPONENT host)
 
@@ -216,14 +208,13 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" DESTINATION licenses)
 # A package build has no tests/: exports_sources leaves it out.
 if(PROJECT_IS_TOP_LEVEL AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests")
     include(CTest)
-endif()
+    if(BUILD_TESTING)
+        # Each Api.hpp must compile on its own.
+        file(GLOB VOLTMOD_API_CHECKS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/Api/*.cpp")
+        add_library(voltmod-api-surface-check OBJECT ${VOLTMOD_API_CHECKS})
+        target_compile_definitions(voltmod-api-surface-check PRIVATE VOLTMOD_API_SURFACE_CHECK)
+        target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Sdk VoltMod::Database)
 
-if(PROJECT_IS_TOP_LEVEL AND BUILD_TESTING)
-    # Each Api.hpp must compile on its own.
-    file(GLOB VOLTMOD_API_CHECKS CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tests/Api/*.cpp")
-    add_library(voltmod-api-surface-check OBJECT ${VOLTMOD_API_CHECKS})
-    target_compile_definitions(voltmod-api-surface-check PRIVATE VOLTMOD_API_SURFACE_CHECK)
-    target_link_libraries(voltmod-api-surface-check PRIVATE VoltMod::Sdk VoltMod::Database)
-
-    voltmod_add_tests(voltmod-tests DATABASE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/Loader/GameInfo.cpp")
+        voltmod_add_tests(voltmod-tests DATABASE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/Loader/GameInfo.cpp")
+    endif()
 endif()

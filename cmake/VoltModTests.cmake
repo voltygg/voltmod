@@ -1,8 +1,5 @@
 include_guard(GLOBAL)
 
-# Consumer test API:
-#   voltmod_add_tests(<name> [DATABASE] [SOURCES ...] [DEFINITIONS ...])
-
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 
 # '[', ']' and ';' break CTest's list of discovered names.

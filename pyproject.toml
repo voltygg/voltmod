@@ -7,7 +7,7 @@ requires-python = ">=3.14"
 license = { text = "MIT" }
 
 dependencies = [
-    "cmake>=4.3.4",
+    "cmake>=4.4.3",
     "conan>=2.29.1",
     "ninja>=1.13.0",
     "clang-format==22.1.5",

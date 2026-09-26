@@ -1,8 +1,6 @@
 include_guard(GLOBAL)
 
-# Shared paths, platform names, and first-party compile settings.
-
-get_filename_component(VOLTMOD_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}/.." REALPATH)
+file(REAL_PATH "${CMAKE_CURRENT_LIST_DIR}/.." VOLTMOD_ROOT_DIR)
 set(VOLTMOD_GAMEDATA_DIR "${VOLTMOD_ROOT_DIR}/gamedata")
 
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -20,20 +18,16 @@ else()
     message(FATAL_ERROR "Only Windows and Linux builds are supported.")
 endif()
 
-# First-party targets only; SDK usage requirements set none of this.
-# /Z7, not /Zi: ccache can cache it and framework frames land in plugin PDBs.
+# First-party targets only. Embedded (/Z7) debug info: ccache caches it, and framework frames land in plugin PDBs.
 function(voltmod_set_cxx_defaults target)
     target_compile_features("${target}" PUBLIC cxx_std_23)
     set_target_properties("${target}" PROPERTIES
         CXX_EXTENSIONS OFF
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON
+        MSVC_DEBUG_INFORMATION_FORMAT Embedded
     )
-    target_compile_options("${target}" PRIVATE
-        "$<$<AND:$<CONFIG:Release>,$<CXX_COMPILER_ID:MSVC>>:/Z7>"
-        "$<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang>:-Wall>"
-        "$<$<CXX_COMPILER_ID:MSVC>:/W3>"
-    )
+    target_compile_options("${target}" PRIVATE "$<IF:$<CXX_COMPILER_ID:MSVC>,/W3,-Wall>")
 endfunction()
 
 # A module the game process loads: the loader, the host, or a plugin the host loads. Built into

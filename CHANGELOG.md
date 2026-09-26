@@ -13,6 +13,7 @@ What changed in each VoltMod release. Older history is in git.
   as `server_valve`, and Metamod is optional.
 - Rebuild every plugin against this release: the host ABI is now 4.
 - Call `IHost::EngineInterface`, `ServerInterface` or `BaseDir` where you called `IHost::Metamod()`.
+- CMake 4.4 is required. `VOLTMOD_DISABLE_PCH` is gone; set `CMAKE_DISABLE_PRECOMPILE_HEADERS=ON` instead.
 
 ## 1.6.0 (2026-09-25)
 

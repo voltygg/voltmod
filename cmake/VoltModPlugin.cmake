@@ -1,8 +1,5 @@
 include_guard(GLOBAL)
 
-# Consumer plugin API:
-#   voltmod_add_plugin(<name> [DATABASE] [SOURCES ...])
-
 include("${CMAKE_CURRENT_LIST_DIR}/VoltModCommon.cmake")
 
 # The Conan package ships a prebuilt host; a framework checkout builds its own.
@@ -56,13 +53,11 @@ function(voltmod_add_plugin target_name)
         )
     endif()
 
-    if(NOT VOLTMOD_DISABLE_PCH)
-        target_precompile_headers("${target_name}" PRIVATE ${pch_headers})
-    endif()
+    target_precompile_headers("${target_name}" PRIVATE ${pch_headers})
 
     # Headers `voltmod build` renders from panorama/screens/.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/panorama/screens")
-        get_filename_component(owner "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
+        cmake_path(GET CMAKE_CURRENT_SOURCE_DIR FILENAME owner)
         target_include_directories("${target_name}" PRIVATE
             "${CMAKE_SOURCE_DIR}/build/panorama/${owner}/include")
     endif()

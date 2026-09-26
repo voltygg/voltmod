@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/Kitware/CMake/master/Help/manual/presets/schema.json",
-  "version": 8,
+  "version": 12,
   "configurePresets": [
     {
       "name": "base",
