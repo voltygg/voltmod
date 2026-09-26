@@ -65,23 +65,31 @@ void Controller::Kick(std::string_view reason) const
     _sys->Interfaces().Engine->DisconnectClient(CPlayerSlot(_slot), NETWORK_DISCONNECT_KICKED, text.c_str());
 }
 
+/** Tokenizes @p command into @p args when it is exactly one non-empty command. */
+static bool TokenizeOneCommand(std::string_view command, CCommand& args)
+{
+    if (command.empty() || command.find_first_of(";\r\n") != std::string_view::npos)
+    {
+        return false;
+    }
+    return args.Tokenize(CUtlString(std::string(command).c_str())) && args.ArgC() > 0;
+}
+
 void Controller::ExecuteCommand(std::string_view command) const
 {
-    if (!_e || !_sys)
+    if (!_e || !_sys || !IsValidSlot(_slot))
     {
         return;
     }
-    const int slot = _slot;
     auto* cvar = _sys->Interfaces().CVar;
     auto* clients = _sys->Interfaces().ServerGameClients;
-    if (!cvar || !clients || !IsValidSlot(slot))
+    if (!cvar || !clients)
     {
         return;
     }
 
     CCommand args;
-    if (command.empty() || command.find_first_of(";\r\n") != std::string_view::npos ||
-        !args.Tokenize(CUtlString(std::string(command).c_str())) || args.ArgC() == 0)
+    if (!TokenizeOneCommand(command, args))
     {
         Log::Warn("Controller: refused client command '{}'; it must be one non-empty command.", command);
         return;
@@ -90,11 +98,11 @@ void Controller::ExecuteCommand(std::string_view command) const
     ConCommandRef registered = cvar->FindConCommand(args.Arg(0));
     if (registered.IsValidRef())
     {
-        cvar->DispatchConCommand(registered, CCommandContext(CT_FIRST_SPLITSCREEN_CLIENT, CPlayerSlot(slot)), args);
+        cvar->DispatchConCommand(registered, CCommandContext(CT_FIRST_SPLITSCREEN_CLIENT, CPlayerSlot(_slot)), args);
     }
     else
     {
-        clients->ClientCommand(CPlayerSlot(slot), args);
+        clients->ClientCommand(CPlayerSlot(_slot), args);
     }
 }
 

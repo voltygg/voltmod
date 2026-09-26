@@ -82,10 +82,12 @@ bool PluginModule::Attach(IHost& host, char* error, size_t errorSize) noexcept
     }
 }
 
+using InterfaceLookup = void* (IHost::*)(const char* version) const;
+
 template <class T>
-static Status Resolve(T*& field, void* found, std::string_view version)
+static Status Resolve(T*& field, const IHost& host, InterfaceLookup lookup, const char* version)
 {
-    field = static_cast<T*>(found);
+    field = static_cast<T*>((host.*lookup)(version));
     if (!field)
     {
         return std::unexpected(Error::NotReady(std::format("Could not find interface: {}", version)));
@@ -100,23 +102,19 @@ static Result<std::unique_ptr<UnsafeServices>> OpenUnsafe(IHost& host)
     auto unsafe = std::make_unique<UnsafeServices>();
     auto& gi = unsafe->Interfaces;
 
+    constexpr InterfaceLookup server = &IHost::ServerInterface;
+    constexpr InterfaceLookup engine = &IHost::EngineInterface;
     const Status resolved[] = {
-        Resolve(gi.ServerGameDLL, host.ServerInterface(INTERFACEVERSION_SERVERGAMEDLL), INTERFACEVERSION_SERVERGAMEDLL),
-        Resolve(gi.ServerGameClients, host.ServerInterface(INTERFACEVERSION_SERVERGAMECLIENTS),
-                INTERFACEVERSION_SERVERGAMECLIENTS),
-        Resolve(gi.NetworkServerService, host.EngineInterface(NETWORKSERVERSERVICE_INTERFACE_VERSION),
-                NETWORKSERVERSERVICE_INTERFACE_VERSION),
-        Resolve(gi.GameEntities, host.ServerInterface(INTERFACEVERSION_SERVERGAMEENTS),
-                INTERFACEVERSION_SERVERGAMEENTS),
-        Resolve(gi.Engine, host.EngineInterface(INTERFACEVERSION_VENGINESERVER), INTERFACEVERSION_VENGINESERVER),
-        Resolve(gi.GameEventSystem, host.EngineInterface(GAMEEVENTSYSTEM_INTERFACE_VERSION),
-                GAMEEVENTSYSTEM_INTERFACE_VERSION),
-        Resolve(gi.NetworkMessages, host.EngineInterface(NETWORKMESSAGES_INTERFACE_VERSION),
-                NETWORKMESSAGES_INTERFACE_VERSION),
-        Resolve(gi.SchemaSystem, host.EngineInterface(SCHEMASYSTEM_INTERFACE_VERSION), SCHEMASYSTEM_INTERFACE_VERSION),
-        Resolve(gi.CVar, host.EngineInterface(CVAR_INTERFACE_VERSION), CVAR_INTERFACE_VERSION),
-        Resolve(gi.GameResourceService, host.EngineInterface(GAMERESOURCESERVICESERVER_INTERFACE_VERSION),
-                GAMERESOURCESERVICESERVER_INTERFACE_VERSION),
+        Resolve(gi.ServerGameDLL, host, server, INTERFACEVERSION_SERVERGAMEDLL),
+        Resolve(gi.ServerGameClients, host, server, INTERFACEVERSION_SERVERGAMECLIENTS),
+        Resolve(gi.NetworkServerService, host, engine, NETWORKSERVERSERVICE_INTERFACE_VERSION),
+        Resolve(gi.GameEntities, host, server, INTERFACEVERSION_SERVERGAMEENTS),
+        Resolve(gi.Engine, host, engine, INTERFACEVERSION_VENGINESERVER),
+        Resolve(gi.GameEventSystem, host, engine, GAMEEVENTSYSTEM_INTERFACE_VERSION),
+        Resolve(gi.NetworkMessages, host, engine, NETWORKMESSAGES_INTERFACE_VERSION),
+        Resolve(gi.SchemaSystem, host, engine, SCHEMASYSTEM_INTERFACE_VERSION),
+        Resolve(gi.CVar, host, engine, CVAR_INTERFACE_VERSION),
+        Resolve(gi.GameResourceService, host, engine, GAMERESOURCESERVICESERVER_INTERFACE_VERSION),
     };
     for (const Status& status : resolved)
     {
