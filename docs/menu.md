@@ -77,48 +77,6 @@ For a shape the specs do not cover, write a @ref VoltMod::MenuItem by hand and `
 showing the row (so it can `Open` a submenu or `Prompt` for a line of chat), `Step` consumes A/D,
 and `Commit` applies whatever `Step` left showing.
 
-## Context rows
-
-For rows acting on an admin/target pair, build an @ref VoltMod::ActionRows over the services a
-press runs through, then append what it returns:
-
-```cpp
-using VoltMod::ActionRows;
-
-ActionRows rows({.Actions = app.Actions, .Policy = runtime.Policy,
-                 .Translations = runtime.Translations, .Players = runtime.Players,
-                 .Entities = runtime.Entities, .Menus = runtime.Menus, .Effects = &app.Effects},
-                adminRef, targetRef);            // PlayerRef, optional<PlayerRef>
-
-MenuBuilder(title)
-    .Add(rows.Action("action.kill", Actions::Kill))                     // runs an Action
-    .Add(rows.StateToggle("action.freeze", IsFrozen, Actions::Freeze))  // bool IsFrozen(const Pawn&)
-    .Add(rows.Presets({.LabelKey = "action.health", .Unit = "HP",
-                       .Presets = HealthPresets, .Action = Actions::SetHealth}))
-    .Add(rows.Effect(Effects::Ghost))           // data-defined effect (EffectDescriptor)
-    .Add(rows.EffectPicker(Effects::Model))     // submenu over the effect's Choices
-    .Build();
-```
-
-These rows translate labels for the admin and use `Policy::Authorize` for their enabled state, then
-authorize again on the press, from the stored `PlayerRef` values so slot reuse cannot change the
-caller or the target. Objects in `ActionRows::Services` must outlive the rows, which the load cycle
-normally guarantees.
-
-`rows.Allows(permission)` hands you that authorization as an @ref VoltMod::EnabledCondition for
-your own callbacks, and `rows.Translate(key, tokens)` the admin's wording:
-
-```cpp
-.Add(ButtonRow{.Label = rows.Translate("action.callCheck"),
-               .Activate = [&](int) { StartCheck(...); },
-               .Enabled = rows.Allows("s")})
-```
-
-`StateToggle` re-reads its predicate every redraw, so one row shows "Freeze"/"Unfreeze" reality and
-doubles as the undo control. `Presets` leaves the menu open after applying, so a value can be
-adjusted again. An effect row built without `Services::Effects` is drawn disabled rather than live
-and doing nothing; the descriptor itself is in @ref players_guide.
-
 ## Flow: multistep wizards
 
 @ref VoltMod::Flow carries a state struct through steps such as "pick duration, pick reason,
@@ -228,7 +186,7 @@ Center HTML is read with one cursor, and the cursor belongs to the session:
 Presses closer together than 200 ms are ignored. Keys are the only input center HTML has, so there
 is no switching them off: a menu nobody can navigate is a menu nobody can close.
 
-A row carrying a `Commit` - a `ChoiceRow`, an `ActionRows::Presets` row - applies what stepping
+A row carrying a `Commit`, such as a `ChoiceRow`, applies what stepping
 left it showing once the stepping stops. The commit is held for 400 ms and re-held on each further
 step, so a burst of A/D is one action and one broadcast. Activating the row, closing the menu or
 moving the cursor off it runs what is held; a player leaving the slot cancels it.
@@ -314,5 +272,5 @@ Include the specific menu headers a translation unit uses, or `<VoltMod/Menu/Api
 public surface. `MenuBuilder.hpp`, `Flow.hpp`, `MenuStack.hpp` and
 `MenuRouter.hpp` are SDK-free - the two calls a row makes into a live session go through
 @ref VoltMod::MenuSurface, an abstract class with no engine behind it - which is what lets the
-`tests/Menu/` suite drive real rows and real flows against a fake session. `CenterHtmlMenu.hpp`,
-`PanoramaMenu.hpp` and `ActionRows.hpp` are not SDK-free and do not try to be.
+`tests/Menu/` suite drive real rows and real flows against a fake session. `CenterHtmlMenu.hpp` and
+`PanoramaMenu.hpp` are not SDK-free and do not try to be.

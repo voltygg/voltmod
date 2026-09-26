@@ -124,20 +124,6 @@ bool CommandRouter::IsForeign(std::string_view name) const
     return _host && !Find(name) && _host->IsCommandRegistered(Strings::ToLower(std::string(name)));
 }
 
-std::vector<std::string> CommandRouter::NamesWithPermission() const
-{
-    std::vector<std::string> names;
-    for (const auto& [key, def] : _commands)
-    {
-        if (!def.PermissionName.empty())
-        {
-            names.push_back(def.Name);
-        }
-    }
-    std::sort(names.begin(), names.end());
-    return names;
-}
-
 size_t CommandRouter::RequiredArgs(const CommandDefinition& def)
 {
     return static_cast<size_t>(

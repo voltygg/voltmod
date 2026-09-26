@@ -169,7 +169,7 @@ public:
         return *this;
     }
 
-    /** Append a row built by hand, or by @ref ActionRows. */
+    /** Append a row built by hand. */
     MenuBuilder& Add(MenuItem item)
     {
         _menu.Items.push_back(std::move(item));

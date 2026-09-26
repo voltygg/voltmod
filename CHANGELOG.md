@@ -21,6 +21,11 @@ What changed in each VoltMod release. Older history is in git.
 - Command handlers need no `-> Result<Reply>` unless they mix `Reply::Silent()` with `Ok`/`Fail`, and
   may return nothing. `Caller::Tr` is `Caller::Translations`.
 - `Messages::Reply` and `ReplyKey` are `Send` and `SendKey`.
+- `Policy::HasPermission` asks the plugin that publishes `VoltMod::IPermissions` by default; publish it
+  instead of installing a policy per plugin. `CommandsMissingPolicy` and the `Permissions` load step
+  are gone.
+- `Action`, `ActionDispatcher`, `EffectDescriptor`, `EffectDispatcher`, `EffectManager` and
+  `ActionRows` left the framework, and `Policy::Broadcast` with them.
 
 ### New
 

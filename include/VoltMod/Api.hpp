@@ -20,7 +20,7 @@
 #include <VoltMod/Core/Time/Durations.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Core/Time/Throttle.hpp>
-#include <VoltMod/Players/EffectDispatcher.hpp>
+#include <VoltMod/Players/Permissions.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/PlayerRef.hpp>

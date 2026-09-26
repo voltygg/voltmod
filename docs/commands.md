@@ -101,10 +101,9 @@ through the same reply callback as everything else:
 
 ## Permissions
 
-`Permission(...)` gates the command on `runtime.Policy.Authorize`, which asks `HasPermission`.
-With no policy installed the command is **denied**, not allowed; the framework logs an error the
-first time and the load report names every affected command through `CommandsMissingPolicy()`.
-Failing open there would hand every player every command.
+`Permission(...)` gates the command on `runtime.Policy.Authorize`, which asks the plugin that
+publishes `IPermissions` (admin-system). While none is loaded the command is **denied**, not
+allowed, and the first denial is logged. Failing open there would hand every player every command.
 
 An empty permission skips the check. See @ref players_guide for the rest of the gate.
 

@@ -59,10 +59,6 @@ public:
     /** Remove every command. Framework only, on unload. */
     void RemoveAll();
 
-    /** Commands that need a permission while no `HasPermission` policy is installed, so every call
-     *  is denied. Reported after Load. */
-    std::vector<std::string> CommandsMissingPolicy() const;
-
 private:
     void InstallConsoleCommand(const CommandDefinition& def);
     /** Reply through `Policy::Reply`, else chat. */

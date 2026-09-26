@@ -98,8 +98,10 @@ halves a score every half-life and holds one value and one timestamp whatever th
 ## The gate
 
 @ref VoltMod::Policy::Authorize is the one gate between framework dispatch and a plugin's
-permission and immunity rules. Fill the callbacks once in `Load` - see
-@ref plugin_guide "Writing a plugin".
+permission and immunity rules. The runtime sets `HasPermission` to ask the plugin that publishes
+@ref VoltMod::IPermissions (admin-system), so `.Permission("x")` works in every plugin while it is
+loaded and denies while it is not. A plugin that owns permissions replaces `HasPermission`, and
+fills `CanTarget` and `Reply`, once in `Load`.
 
 ```cpp
 Result<Authorized> Authorize(PlayerRef caller, std::optional<PlayerRef> target,
@@ -110,8 +112,7 @@ Result<Authorized> Authorize(PlayerRef caller, std::optional<PlayerRef> target,
 | --- | --- |
 | `caller` is not connected (gone, or the slot changed hands) | `ErrorCode::NotFound`, no `Key` |
 | `target` given but not connected | `ErrorCode::NotFound`, `Key` `target.noMatch` |
-| `permission` non-empty and no `HasPermission` installed | `ErrorCode::Denied`, `Key` `cmd.noPermission`, logged once |
-| `HasPermission` says no | `ErrorCode::Denied`, `Key` `cmd.noPermission` |
+| `HasPermission` says no, or nothing publishes `IPermissions` (logged once) | `ErrorCode::Denied`, `Key` `cmd.noPermission` |
 | `CanTarget` says no | `ErrorCode::Immune`, `Key` `target.immune` |
 | otherwise | @ref VoltMod::Authorized - `Caller` and a maybe-null `Target` |
 
@@ -134,8 +135,7 @@ offline. It returns @ref VoltMod::Status, because an offline target has no `Play
 Use it wherever a command binds `Args::PlayerOrSteamId` or a bare SteamID, rather than consulting
 a plugin's own immunity table.
 
-`Policy::Reply` delivers a command result line and `Policy::Broadcast` announces a performed
-action; both are unset by default, and `Reply` then falls back to `runtime.Messages.Send`.
+`Policy::Reply` delivers a command result line; unset, it falls back to `runtime.Messages.Send`.
 
 ## Target selectors
 
@@ -143,91 +143,3 @@ A `Args::Target` or `Args::Targets` command argument understands `@all`, `@me`, 
 `#slot`, SteamIDs and name fragments; the grammar and its reply keys are in @ref commands_guide.
 Resolution runs inside command dispatch, applies this same gate per candidate, and is not public
 API - declare the argument rather than resolving tokens yourself.
-
-## Actions
-
-An @ref VoltMod::Action is permission, guards and body. @ref VoltMod::ActionDispatcher authorizes,
-runs and broadcasts it:
-
-```cpp
-using VoltMod::Action;
-using VoltMod::ActionContext;
-using VoltMod::ActionDispatcher;
-using VoltMod::OptKey;
-
-const Action Slay{"s", /*RequireAlive=*/true, [](const ActionContext& ctx) -> OptKey {
-    ctx.Target().Pawn().Slay();
-    return "broadcast.slain";        // the Policy::Broadcast callback announces it; nullopt = silent
-}};
-
-ActionDispatcher actions{runtime.Policy};
-actions.Run(adminRef, targetRef, Slay);
-```
-
-`Run` takes @ref VoltMod::PlayerRef, not slots: a stored row or callback that outlived its player is
-refused rather than retargeted at whoever holds the slot now. Turn a slot into a ref at the
-boundary that first receives it. `Resolve(caller, target, permission)` returns
-`Result<ActionContext>` when you want the pair without running an action.
-
-`ActionContext` carries the @ref VoltMod::Authorized pair, `ctx.Caller()` and `ctx.Target()`, and
-nothing else: `ctx.Target().Pawn()` is the target's body. A body that needs another service reaches
-it through the plugin's own `App&`. `ParamAction` adds an int the call site supplies (health value, team
-id). An empty permission string skips that check.
-
-Actions plug into menu context rows (`Action`, `StateToggle`, `Presets`; see @ref menus_guide), so
-the same data drives commands, menus and bespoke call sites.
-
-## Effects
-
-@ref VoltMod::EffectDescriptor is a toggleable, timed or parameterized player effect as data:
-permission, display keys, lifetime policy, optional `Choices`, and a `Setup` returning the
-callbacks @ref VoltMod::EffectManager drives.
-
-```cpp
-using VoltMod::EffectDescriptor;
-using VoltMod::EffectInstance;
-using VoltMod::EffectScope;
-
-// Descriptors are static data built before any App exists, so a body that needs an engine service
-// captures a Runtime& through a small factory instead of reading it off the context.
-EffectDescriptor MakeGhost(VoltMod::Runtime& runtime)
-{
-    return EffectDescriptor{
-        .Permission = "g",
-        .Id = static_cast<int>(EffectId::Ghost),   // Id is a plain int; cast your effect enum
-        .NameKey = "effect.ghost",
-        .OnKey = "broadcast.ghosted",
-        .OffKey = "broadcast.unghosted",
-        .Scope = EffectScope::Persistent,          // or Round, or Session
-        .Setup = [&runtime](const VoltMod::ActionContext& ctx, int) -> EffectInstance {
-            int slot = ctx.Target().Slot();
-            auto& visibility = runtime.Hooks.Visibility;
-            visibility.SetPawnHidden(slot, true);
-            return {.OnStop = [&visibility, slot] { visibility.SetPawnHidden(slot, false); }};
-        },
-    };
-}
-```
-
-`OnStop` outlives the `ActionContext` that produced it, so capture the service, never `ctx`.
-Capturing a `Runtime&` or an `App&` by reference is safe: `EffectManager` is a member of your
-`App`, which is destroyed before the `Runtime`.
-
-`Setup` also receives a `param` - 0 for a plain toggle, an @ref VoltMod::EffectChoice's `Param`
-for a picker. `TickIntervalMs` runs `OnTick` on a timer, `DurationMs` auto-expires the effect, and
-an empty `OnKey`/`OffKey` suppresses that broadcast.
-
-Hold an `EffectDispatcher` beside the `ActionDispatcher` and `EffectManager`
-(`EffectDispatcher PlayerEffects{Actions, Effects};`). Its `Toggle`, `Apply` and `Clear` resolve
-and authorize the pair before changing anything. `ActionRows::Effect` puts a toggle in a menu and
-`ActionRows::EffectPicker` builds a submenu from `Choices`.
-
-`EffectManager` runs `OnStop` exactly once however the effect ends. The sweeps:
-
-| Call | Clears |
-| --- | --- |
-| `Cancel(slot, id)` | one effect on one player |
-| `CancelAll(slot)` | every effect on one player |
-| `CancelAll()` | every effect on everyone |
-| `CancelRound()` | every `EffectScope::Round` effect everywhere |
-| `CancelOnDeath(slot)` | a player's effects except those scoped `Session` |

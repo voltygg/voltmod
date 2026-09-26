@@ -14,15 +14,15 @@ The shapes the framework already uses. New code follows them instead of adding a
 - A service is ready when built: it takes resolved interfaces and bindings in its constructor, does its setup there, and reports what did not bind through `Available()`. No `Initialize()`, `Attach()` or other second step. The module opens `UnsafeServices` before the runtime, and the runtime records each service as a load step.
 - Lifecycle signals are `Event` members (`Map.Started`, `Players.Said`), not `Plugin` virtuals. A registration that withdraws something, `Exchange.Publish` included, returns a `Subscription`.
 - `Runtime` is a flat service container (`runtime.Players`, `runtime.Trace`), so moving a service between modules does not rename the consumer API. No grouping structs such as a `runtime.World`.
-- No ambient accessor. Constructor-inject the narrowest service that does the job: `CenterHtmlMenu(const CenterHtmlMenu::Services&)`, `ActionDispatcher(Policy&)`, never `Runtime&`. Only `Commands` and `App` may take `Runtime&`.
+- No ambient accessor. Constructor-inject the narrowest service that does the job: `CenterHtmlMenu(const CenterHtmlMenu::Services&)`, `CommandRouter(const Policy&, Translations&)`, never `Runtime&`. Only `Commands` and `App` may take `Runtime&`.
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one service, so including them does not pull in the composition root.
 - Process-lifetime state belongs to the host and nowhere else. The host is one per process by design, and what must exist once for the whole server - the engine hooks, the frame tick, the service table, the plugin list - lives there behind an interface in `Host/`. Everything else, including every service a plugin can reach through `Runtime`, is per load cycle and per plugin; the SDK is a static library in each plugin, so a singleton in it would be one copy per plugin pretending to be one per server. Add nothing to the host that a plugin could own itself.
 
 ## Registration and authorization
 
-- Descriptors such as `Action` and menu rows are registered explicitly at load, never at static init.
+- Descriptors such as menu rows are registered explicitly at load, never at static init. Admin-only models (actions, effects) belong to the plugin that owns them, not the framework.
 - Commands use `Commands.Add(name)...Run(handler)`; the handler signature is its argument spec.
-- Consumers inject permission, targeting, reply, and broadcast behavior once through `Runtime::Policy`. `Policy::Authorize(caller, target, permission)` is the only gate; nothing repeats its steps. Denial is a `Result<Authorized>` error, not a nulled field.
+- Permissions come from the `IPermissions` a plugin publishes, which the runtime's default `Policy::HasPermission` asks; consumers inject targeting and reply behavior once through `Runtime::Policy`. `Policy::Authorize(caller, target, permission)` is the only gate; nothing repeats its steps. Denial is a `Result<Authorized>` error, not a nulled field.
 
 ## Players and events
 

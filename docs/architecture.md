@@ -169,10 +169,10 @@ Three rules follow from the single-cycle model:
   @ref VoltMod::Scheduler, so a callback never races game code.
 - **Dependencies arrive through constructors.** The plugin constructor gets the runtime; every
   object below it gets only the services it uses. Nothing self-registers during static initialization.
-- **Policy is injected once.** The framework has no admin model. A plugin fills `runtime.Policy`
-  in `Load`, and one gate, `Policy::Authorize`, applies it to commands, targeting, actions,
-  effects and menu rows. Anything declaring a permission is denied while `HasPermission` is
-  unset. See @ref players_guide.
+- **Policy is injected once.** The framework has no admin model. Permissions come from whichever
+  plugin publishes `IPermissions`, and one gate, `Policy::Authorize`, applies them to commands,
+  targeting and menu rows. Anything declaring a permission is denied while nothing publishes it.
+  See @ref players_guide.
 
 File-static state is reserved for engine callbacks that cannot carry user data and for
 process-wide values such as the log handler and the base directory. The service that owns a

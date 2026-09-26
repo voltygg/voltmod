@@ -101,7 +101,8 @@ public:
     PlayerManager Players{Slots, &Entities};
 
     /** Plugin-supplied permission, targeting and reply rules, and the one gate that applies
-     *  them (`Policy::Authorize`). Fill the members you enforce in Plugin::Load. */
+     *  them (`Policy::Authorize`). `HasPermission` asks whichever plugin publishes
+     *  @ref IPermissions until a plugin sets its own. */
     VoltMod::Policy Policy{Players};
 
     VoltMod::ConVars ConVars{Unsafe.Interfaces};

@@ -213,7 +213,7 @@ public:
         return *this;
     }
 
-    /** Gate on `Policy::Authorize`. An unset `Policy::HasPermission` denies every one of these. */
+    /** Gate on `Policy::Authorize`, which denies while no plugin publishes `IPermissions`. */
     CommandBuilder& Permission(std::string_view permission)
     {
         _def.PermissionName = std::string(permission);

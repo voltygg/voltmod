@@ -1,6 +1,5 @@
 #pragma once
 
-#include <VoltMod/Menu/ActionRows.hpp>
 #include <VoltMod/Menu/CenterHtmlMenu.hpp>
 #include <VoltMod/Menu/Flow.hpp>
 #include <VoltMod/Menu/MenuBuilder.hpp>

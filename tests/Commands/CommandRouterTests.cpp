@@ -527,19 +527,6 @@ TEST_CASE("A permission is checked for a player and skipped for the console")
     CHECK(f.Lines[0] == "ok");
 }
 
-TEST_CASE("Commands declaring a permission are named for the load report")
-{
-    Fixture f;
-    CommandDefinition gated = Echo("ban", {}, nullptr);
-    gated.PermissionName = "b";
-    f.Router.Add(std::move(gated));
-    f.Router.Add(Echo("report", {}, nullptr));
-
-    const auto named = f.Router.NamesWithPermission();
-    REQUIRE(named.size() == 1);
-    CHECK(named[0] == "ban");
-}
-
 TEST_CASE("A handler failure replies with its own localized line and a success with its reply")
 {
     Fixture f;

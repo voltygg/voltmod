@@ -145,13 +145,4 @@ size_t CommandManager::Count() const
     return _router->Count();
 }
 
-std::vector<std::string> CommandManager::CommandsMissingPolicy() const
-{
-    if (_policy.HasPermission)
-    {
-        return {};
-    }
-    return _router->NamesWithPermission();
-}
-
 }  // namespace VoltMod

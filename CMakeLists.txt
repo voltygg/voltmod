@@ -44,7 +44,6 @@ set(VOLTMOD_PORTABLE_SOURCES
     src/Core/Text/Translations.cpp
     src/Core/Time/Scheduler.cpp
     src/Core/Time/Durations.cpp
-    src/Players/EffectManager.cpp
     src/Players/PlayerManager.cpp
     src/Players/Policy.cpp
     src/Hooks/PendingConVarQueries.cpp

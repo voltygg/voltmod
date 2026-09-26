@@ -2,8 +2,10 @@
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Menu/PanoramaMenu.hpp>
+#include <VoltMod/Players/Permissions.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <chrono>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -20,6 +22,21 @@ Runtime::Runtime(IHost& host, UnsafeServices& unsafe)
       Exchange(host.Services()),
       Commands(Policy, Translations, Players, Entities, Messages, host)
 {
+    // A plugin that owns permissions (admin-system) replaces this with its own rule.
+    Policy.HasPermission = [this, warned = false](int64_t steamId, std::string_view permission) mutable {
+        if (auto* permissions = Exchange.Get<IPermissions>())
+        {
+            return permissions->HasPermission(steamId, permission);
+        }
+        if (!warned)
+        {
+            warned = true;
+            Log::Warn("Denying '{}': no plugin publishes {}; load admin-system.", permission,
+                      IPermissions::InterfaceName);
+        }
+        return false;
+    };
+
     RecordServiceSteps();
     RegisterStatusSections();
 }

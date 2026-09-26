@@ -12,10 +12,7 @@ void VoltmodApiSurface_RootLinks(VoltMod::Runtime&) {}
 class ApiSurfacePlugin final : public VoltMod::Plugin
 {
 public:
-    explicit ApiSurfacePlugin(VoltMod::Runtime& runtime) : Plugin(runtime) {}
-
-private:
-    bool Load() override { return true; }
+    using Plugin::Plugin;
 };
 
 static_assert(std::is_base_of_v<VoltMod::Plugin, ApiSurfacePlugin>);

@@ -20,7 +20,6 @@
 #include <string>
 #include <string_view>
 #include <tier1/convar.h>
-#include <vector>
 
 namespace VoltMod::Internal
 {
@@ -199,19 +198,6 @@ bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
         std::string reason = _runtime->LoadSteps.AbortReason();
         return Refuse(reason.empty() ? "Load returned false" : reason, error, errorSize);
     }
-
-    _runtime->LoadSteps.Optional("Permissions", [this]() -> Status {
-        const std::vector<std::string> missing = _runtime->Commands.CommandsMissingPolicy();
-        if (missing.empty())
-        {
-            return {};
-        }
-        return std::unexpected(
-            Error::Invalid(std::format("{} command(s) gate on a permission with no HasPermission policy "
-                                       "installed and will be denied ({}); set Runtime::Policy.HasPermission "
-                                       "in Load",
-                                       missing.size(), Strings::Join(missing, ", "))));
-    });
 
     Log::Info("{}", _runtime->LoadSteps.Summary());
     return true;

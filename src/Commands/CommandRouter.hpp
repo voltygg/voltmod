@@ -60,10 +60,6 @@ public:
 
     size_t Count() const { return _commands.size(); }
 
-    /** Registered names that declare a permission. Sorted; map order is arbitrary and a load
-     *  report should not be. */
-    std::vector<std::string> NamesWithPermission() const;
-
     /** The usage line for @p def, in @p slot's language. */
     std::string Usage(const CommandDefinition& def, int slot, Origin origin) const;
 
