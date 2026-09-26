@@ -3,6 +3,7 @@
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Text/Json.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Host/IHostGameData.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <chrono>
@@ -21,15 +22,6 @@
 
 namespace VoltMod
 {
-
-/** Copy @p text into the host's error buffer, cut to fit. */
-static void WriteError(const LoadContext& context, std::string_view text)
-{
-    if (context.MaxLen > 0)
-    {
-        *std::format_to_n(context.Error, context.MaxLen - 1, "{}", text).out = '\0';
-    }
-}
 
 Runtime::Runtime(IHostLanguages& languages) : _languages(languages) {}
 
@@ -91,29 +83,26 @@ void Runtime::InstallLogger(const LoadContext& context)
 bool Runtime::ResolveInterfaces(const LoadContext& context)
 {
     IHost* host = context.Host;
-    auto resolveEngine = [host](const char* version) { return host->EngineInterface(version); };
-    auto resolveServer = [host](const char* version) { return host->ServerInterface(version); };
-
     auto& gi = Unsafe.Interfaces;
 
-#define VOLTMOD_RESOLVE(field, factory, version)                                   \
-    gi.field = static_cast<decltype(gi.field)>(factory(version));                  \
-    if (!gi.field)                                                                 \
-    {                                                                              \
-        WriteError(context, std::format("Could not find interface: {}", version)); \
-        return false;                                                              \
+#define VOLTMOD_RESOLVE(field, method, version)                                                                     \
+    gi.field = static_cast<decltype(gi.field)>(host->method(version));                                              \
+    if (!gi.field)                                                                                                  \
+    {                                                                                                               \
+        Strings::CopyToBuffer(context.Error, context.MaxLen, std::format("Could not find interface: {}", version)); \
+        return false;                                                                                               \
     }
 
-    VOLTMOD_RESOLVE(ServerGameDLL, resolveServer, INTERFACEVERSION_SERVERGAMEDLL)
-    VOLTMOD_RESOLVE(ServerGameClients, resolveServer, INTERFACEVERSION_SERVERGAMECLIENTS)
-    VOLTMOD_RESOLVE(NetworkServerService, resolveEngine, NETWORKSERVERSERVICE_INTERFACE_VERSION)
-    VOLTMOD_RESOLVE(GameEntities, resolveServer, INTERFACEVERSION_SERVERGAMEENTS)
-    VOLTMOD_RESOLVE(Engine, resolveEngine, INTERFACEVERSION_VENGINESERVER)
-    VOLTMOD_RESOLVE(GameEventSystem, resolveEngine, GAMEEVENTSYSTEM_INTERFACE_VERSION)
-    VOLTMOD_RESOLVE(NetworkMessages, resolveEngine, NETWORKMESSAGES_INTERFACE_VERSION)
-    VOLTMOD_RESOLVE(SchemaSystem, resolveEngine, SCHEMASYSTEM_INTERFACE_VERSION)
-    VOLTMOD_RESOLVE(CVar, resolveEngine, CVAR_INTERFACE_VERSION)
-    VOLTMOD_RESOLVE(GameResourceService, resolveEngine, GAMERESOURCESERVICESERVER_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(ServerGameDLL, ServerInterface, INTERFACEVERSION_SERVERGAMEDLL)
+    VOLTMOD_RESOLVE(ServerGameClients, ServerInterface, INTERFACEVERSION_SERVERGAMECLIENTS)
+    VOLTMOD_RESOLVE(NetworkServerService, EngineInterface, NETWORKSERVERSERVICE_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(GameEntities, ServerInterface, INTERFACEVERSION_SERVERGAMEENTS)
+    VOLTMOD_RESOLVE(Engine, EngineInterface, INTERFACEVERSION_VENGINESERVER)
+    VOLTMOD_RESOLVE(GameEventSystem, EngineInterface, GAMEEVENTSYSTEM_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(NetworkMessages, EngineInterface, NETWORKMESSAGES_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(SchemaSystem, EngineInterface, SCHEMASYSTEM_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(CVar, EngineInterface, CVAR_INTERFACE_VERSION)
+    VOLTMOD_RESOLVE(GameResourceService, EngineInterface, GAMERESOURCESERVICESERVER_INTERFACE_VERSION)
 
 #undef VOLTMOD_RESOLVE
 
@@ -147,7 +136,7 @@ bool Runtime::InitializeServices(const LoadContext& context)
             return true;
         }
 
-        WriteError(context, steps.AbortReason());
+        Strings::CopyToBuffer(context.Error, context.MaxLen, steps.AbortReason());
         return false;
     };
 

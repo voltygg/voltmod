@@ -88,8 +88,7 @@ static InterfaceFactory LoadNextServer()
         }
 
         void* module = OpenModule(server);
-        auto* factory =
-            module != nullptr ? reinterpret_cast<InterfaceFactory>(FindExport(module, "CreateInterface")) : nullptr;
+        auto* factory = module ? reinterpret_cast<InterfaceFactory>(FindExport(module, "CreateInterface")) : nullptr;
         if (factory == nullptr)
         {
             Warning("[VoltMod] Could not load %s: %s\n", server.string().c_str(), LastError().c_str());
@@ -128,8 +127,14 @@ static void StartHost()
 
     const std::filesystem::path path = OwnPath().parent_path() / HostFile;
     void* host = OpenModule(path);
-    auto* start = host != nullptr ? reinterpret_cast<HostStartFn>(FindExport(host, HostStartName)) : nullptr;
-    auto* stop = host != nullptr ? reinterpret_cast<HostStopFn>(FindExport(host, HostStopName)) : nullptr;
+    if (host == nullptr)
+    {
+        Warning("[VoltMod] Could not load %s: %s\n", path.string().c_str(), LastError().c_str());
+        return;
+    }
+
+    auto* start = reinterpret_cast<HostStartFn>(FindExport(host, HostStartName));
+    auto* stop = reinterpret_cast<HostStopFn>(FindExport(host, HostStopName));
     if (start == nullptr || stop == nullptr)
     {
         Warning("[VoltMod] Could not load %s: %s\n", path.string().c_str(), LastError().c_str());

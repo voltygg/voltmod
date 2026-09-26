@@ -34,7 +34,6 @@ public:
 
 private:
     bool AttachImpl(IHost& host, char* error, size_t errorSize);
-    void WriteFailure(char* error, size_t errorSize, std::string_view failure) noexcept;
 
     void OnServerStartup(std::string_view mapName);
     bool OnConsoleCommand(std::string_view name, std::string_view arguments, int slot);

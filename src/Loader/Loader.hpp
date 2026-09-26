@@ -5,6 +5,7 @@
 #include <VoltMod/Host/PluginDescriptor.hpp>
 #include <filesystem>
 #include <string>
+#include <string_view>
 
 /** The engine loads this module as `server_valve` and asks it for the game server's interfaces. */
 extern "C" VOLTMOD_EXPORT void* CreateInterface(const char* name, int* returnCode);
@@ -12,14 +13,13 @@ extern "C" VOLTMOD_EXPORT void* CreateInterface(const char* name, int* returnCod
 namespace VoltMod
 {
 
+// CMake passes the host's file name and bin directory, so they cannot drift from the build.
+inline constexpr std::string_view PlatformDir = VOLTMOD_BIN_DIR;
+inline constexpr std::string_view HostFile = VOLTMOD_HOST_FILE;
 #if defined(_WIN32)
-inline constexpr const char* PlatformDir = "win64";
-inline constexpr const char* ServerFile = "server.dll";
-inline constexpr const char* HostFile = "voltmod.dll";
+inline constexpr std::string_view ServerFile = "server.dll";
 #else
-inline constexpr const char* PlatformDir = "linuxsteamrt64";
-inline constexpr const char* ServerFile = "libserver.so";
-inline constexpr const char* HostFile = "voltmod.so";
+inline constexpr std::string_view ServerFile = "libserver.so";
 #endif
 
 // Loader.windows.cpp and Loader.linux.cpp each implement these for their platform.

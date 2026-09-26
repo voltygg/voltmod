@@ -39,7 +39,7 @@ def pattern_regex(pattern: str) -> re.Pattern[bytes]:
 
 def game_libraries(platform: Platform) -> dict[str, str]:
     """Each gamedata module's binary, relative to the install root."""
-    prefix = "lib" if platform is Platform.LINUX else ""
+    prefix = platform.library_prefix
     suffix = platform.library_suffix
     return {
         "server": f"{CSGO_DIR}/bin/{platform.bin_dir}/{prefix}server{suffix}",

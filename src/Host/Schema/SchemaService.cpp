@@ -15,7 +15,7 @@ namespace VoltMod
 
 static constexpr std::string_view EntitySystemOffset = "GameEntitySystem";
 
-void SchemaService::Initialize(PluginHost& host, IHostGameData* gameData)
+void SchemaService::Initialize(PluginHost& host)
 {
     const InterfaceFactory fromEngine = host.Start().EngineFactory;
     if (Status found = ResolveInterface(_schema, fromEngine, SCHEMASYSTEM_INTERFACE_VERSION); !found)
@@ -27,7 +27,8 @@ void SchemaService::Initialize(PluginHost& host, IHostGameData* gameData)
         Log::Error("Schema: {}", found.error().Detail);
     }
 
-    if (gameData != nullptr)
+    // Where the entity system sits inside the resource service, which the dump needs.
+    if (IHostGameData* gameData = host.GameData())
     {
         const GameDataLocation entry = gameData->Lookup(GameDataSection::Offset, EntitySystemOffset);
         _entitySystemOffset = entry.Found ? entry.Value : -1;

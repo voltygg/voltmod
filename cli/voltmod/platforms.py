@@ -16,6 +16,10 @@ class Platform(StrEnum):
         return "win64" if self is Platform.WINDOWS else "linuxsteamrt64"
 
     @property
+    def library_prefix(self) -> str:
+        return "" if self is Platform.WINDOWS else "lib"
+
+    @property
     def library_suffix(self) -> str:
         return ".dll" if self is Platform.WINDOWS else ".so"
 

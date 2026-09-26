@@ -20,7 +20,8 @@ Status EntitySystem::Available() const
 
 Entity EntitySystem::Create(std::string_view className)
 {
-    if (!_bindings.CreateEntityByName || className.empty())
+    // Checked here so every create-then-spawn path gets it.
+    if (!Available() || className.empty())
     {
         return {};
     }
@@ -29,10 +30,6 @@ Entity EntitySystem::Create(std::string_view className)
 
 Entity EntitySystem::Spawn(std::string_view className, KeyValues& values)
 {
-    if (!Available())
-    {
-        return {};
-    }
     Entity entity = Create(className);
     entity.Spawn(values);
     return entity;
@@ -54,10 +51,6 @@ Entity EntitySystem::SpawnProp(const PropSpec& prop)
         values.Set("disableshadows", 1);
     }
 
-    if (!Available())
-    {
-        return {};
-    }
     Entity entity = Create("prop_dynamic");
     // The physics shapes take their owner as they are created.
     if (prop.Owner)

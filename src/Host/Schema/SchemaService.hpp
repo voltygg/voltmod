@@ -19,13 +19,8 @@ namespace VoltMod
 class SchemaService
 {
 public:
-    /**
-     * Compare the layout once and record the answer on @p host.
-     *
-     * @p gameData says where the entity system sits inside the resource service, which is what the
-     * dump needs.
-     */
-    void Initialize(PluginHost& host, IHostGameData* gameData);
+    /** Compare the layout once and record the answer on @p host. */
+    void Initialize(PluginHost& host);
 
     /** Write the dump as soon as a map's entities exist. It writes at most once per process, and
      *  nothing at all while the dump on disk already matches this game build. */

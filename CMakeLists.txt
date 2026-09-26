@@ -183,6 +183,8 @@ voltmod_add_module(voltmod-loader
 set_target_properties(voltmod-loader PROPERTIES OUTPUT_NAME "server_valve" PREFIX "${CMAKE_SHARED_MODULE_PREFIX}")
 target_include_directories(voltmod-loader PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(voltmod-loader PRIVATE khook::khook VoltMod::HL2SDK)
+target_compile_definitions(voltmod-loader PRIVATE
+    VOLTMOD_BIN_DIR="${VOLTMOD_BIN_SUBDIR}" VOLTMOD_HOST_FILE="$<TARGET_FILE_NAME:voltmod-host>")
 # Keep KHook, safetyhook and Zydis symbols local, so they never bind to another module's copy.
 target_link_options(voltmod-loader PRIVATE "$<$<PLATFORM_ID:Linux>:LINKER:--exclude-libs,ALL>")
 

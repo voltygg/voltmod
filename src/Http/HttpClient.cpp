@@ -22,29 +22,6 @@ struct RunningRequest
     HttpCompletion OnComplete;
 };
 
-struct WaitingRequest
-{
-    std::function<HttpResult()> Run;
-    HttpCompletion OnComplete;
-};
-
-struct HttpClient::Requests
-{
-    std::vector<RunningRequest> Running;
-    std::deque<WaitingRequest> Waiting;
-    std::atomic_bool Stopped = false;  // never cleared: a stopped client belongs to an unloading plugin
-
-    void StartWaiting()
-    {
-        while (!Waiting.empty() && Running.size() < MaxRunning)
-        {
-            WaitingRequest next = std::move(Waiting.front());
-            Waiting.pop_front();
-            Running.push_back({std::async(std::launch::async, std::move(next.Run)), std::move(next.OnComplete)});
-        }
-    }
-};
-
 static HttpResult ToResult(cpr::Response&& response)
 {
     if (response.error)
@@ -79,6 +56,31 @@ static HttpResult Perform(const HttpRequest& request, const std::atomic_bool& st
     return {.Error = "unsupported HTTP method"};
 }
 
+struct WaitingRequest
+{
+    HttpRequest Request;
+    HttpCompletion OnComplete;
+};
+
+struct HttpClient::Requests
+{
+    std::vector<RunningRequest> Running;
+    std::deque<WaitingRequest> Waiting;
+    std::atomic_bool Stopped = false;  // never cleared: a stopped client belongs to an unloading plugin
+
+    void StartWaiting()
+    {
+        while (!Waiting.empty() && Running.size() < MaxRunning)
+        {
+            WaitingRequest next = std::move(Waiting.front());
+            Waiting.pop_front();
+            // Stop joins every worker before this goes away, so Stopped outlives them.
+            Running.push_back({std::async(std::launch::async, Perform, std::move(next.Request), std::cref(Stopped)),
+                               std::move(next.OnComplete)});
+        }
+    }
+};
+
 HttpClient::HttpClient(Scheduler& scheduler)
     : _requests(std::make_unique<Requests>()), _onFrame(scheduler.EveryFrame([this] { RunCompletions(); }))
 {}
@@ -96,9 +98,7 @@ void HttpClient::Send(HttpRequest request, HttpCompletion onComplete)
         return;
     }
 
-    // Stop joins every worker before _requests goes away, so the flag outlives them.
-    auto run = [request = std::move(request), &stopped = _requests->Stopped] { return Perform(request, stopped); };
-    _requests->Waiting.push_back({std::move(run), std::move(onComplete)});
+    _requests->Waiting.push_back({std::move(request), std::move(onComplete)});
     _requests->StartWaiting();
 }
 
@@ -117,7 +117,7 @@ void HttpClient::RunCompletions()
 {
     // Take the finished requests out first: a completion may Send and grow the list.
     auto& running = _requests->Running;
-    const auto finished = std::ranges::stable_partition(running, [](const RunningRequest& request) {
+    const auto finished = std::ranges::partition(running, [](const RunningRequest& request) {
         return request.Result.wait_for(std::chrono::seconds(0)) != std::future_status::ready;
     });
     std::vector<RunningRequest> done(std::make_move_iterator(finished.begin()),

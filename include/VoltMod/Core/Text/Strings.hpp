@@ -74,6 +74,9 @@ public:
 
     static bool IsNumeric(std::string_view str);
 
+    /** Copy @p text into a caller's C error buffer of @p size bytes, cut to fit and NUL-terminated. */
+    static void CopyToBuffer(char* buffer, std::size_t size, std::string_view text) noexcept;
+
     /** Row display text, HTML-escaped: the (UTF-8-safely truncated) name, or @p id when unnamed. */
     static std::string DisplayNameOr(int64_t id, std::string_view name, std::size_t maxBytes = 20);
 };

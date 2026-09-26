@@ -27,8 +27,8 @@ def host_binary(platform: Platform) -> str:
 
 def loader_binary(platform: Platform) -> str:
     """The module the engine loads as `server_valve` through VoltMod's gameinfo.gi line."""
-    prefix = "lib" if platform is Platform.LINUX else ""
-    return f"{HOST_ADDON_DIR}/bin/{platform.bin_dir}/{prefix}server_valve{platform.library_suffix}"
+    name = f"{platform.library_prefix}server_valve{platform.library_suffix}"
+    return f"{HOST_ADDON_DIR}/bin/{platform.bin_dir}/{name}"
 
 
 def plugin_dir(name: str) -> str:

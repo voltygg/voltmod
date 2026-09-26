@@ -191,12 +191,10 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
     }
 
     // Drop entries whose entity is gone because the engine recycles indices.
-    bool anyTeamHidden = false;
     for (auto& entry : _private)
     {
         const Entity entity = _entities.Get(entry.Entity);
         entry.Index = entity ? entity.Index() : -1;
-        anyTeamHidden |= entry.HiddenFrom != Team::None;
     }
     std::erase_if(_private, [](const PrivateEntity& e) { return e.Index <= 0; });
 
@@ -227,7 +225,7 @@ void Visibility::OnCheckTransmit(CCheckTransmitInfo** infoList, int infoCount)
 
         const int recipient = static_cast<int>(_bindings.VisibilityRecipientSlot.Read(info));
         CEntityInstance* observed = hiddenCount > 0 ? ObserverTarget(_entities, recipient) : nullptr;
-        const Team recipientTeam = anyTeamHidden ? _entities.Controller(recipient).Team() : Team::None;
+        const Team recipientTeam = _entities.Controller(recipient).Team();
 
         for (int h = 0; h < hiddenCount; ++h)
         {

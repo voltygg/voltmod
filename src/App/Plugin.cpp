@@ -59,14 +59,14 @@ bool PluginModule::Attach(IHost& host, char* error, size_t errorSize) noexcept
     }
     catch (const std::exception& exception)
     {
-        WriteFailure(error, errorSize, exception.what());
+        Strings::CopyToBuffer(error, errorSize, exception.what());
         Shutdown();
         _host = nullptr;
         return false;
     }
     catch (...)
     {
-        WriteFailure(error, errorSize, "plugin threw a non-standard exception during load");
+        Strings::CopyToBuffer(error, errorSize, "plugin threw a non-standard exception during load");
         Shutdown();
         _host = nullptr;
         return false;
@@ -101,7 +101,7 @@ bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
     _plugin = _factory(*_runtime);
     if (!_plugin)
     {
-        WriteFailure(error, errorSize, "plugin factory returned nothing");
+        Strings::CopyToBuffer(error, errorSize, "plugin factory returned nothing");
         Shutdown();
         return false;
     }
@@ -116,7 +116,7 @@ bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
             failure = "Load returned false";
         }
         Log::Info("{}", _runtime->LoadSteps.Summary());
-        WriteFailure(error, errorSize, failure);
+        Strings::CopyToBuffer(error, errorSize, failure);
         Shutdown();
         return false;
     }
@@ -136,18 +136,6 @@ bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
 
     Log::Info("{}", _runtime->LoadSteps.Summary());
     return true;
-}
-
-void PluginModule::WriteFailure(char* error, size_t errorSize, std::string_view failure) noexcept
-{
-    if (error == nullptr || errorSize == 0)
-    {
-        return;
-    }
-
-    const size_t length = std::min(errorSize - 1, failure.size());
-    std::memcpy(error, failure.data(), length);
-    error[length] = '\0';
 }
 
 void PluginModule::Detach() noexcept

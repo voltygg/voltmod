@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cctype>
 #include <charconv>
+#include <cstring>
 #include <limits>
 #include <sstream>
 #include <string_view>
@@ -251,6 +252,18 @@ bool Strings::IsNumeric(std::string_view str)
         return false;
     }
     return std::all_of(str.begin(), str.end(), [](unsigned char c) { return std::isdigit(c); });
+}
+
+void Strings::CopyToBuffer(char* buffer, std::size_t size, std::string_view text) noexcept
+{
+    if (buffer == nullptr || size == 0)
+    {
+        return;
+    }
+
+    const std::size_t length = std::min(size - 1, text.size());
+    std::memcpy(buffer, text.data(), length);
+    buffer[length] = '\0';
 }
 
 std::string Strings::DisplayNameOr(int64_t id, std::string_view name, std::size_t maxBytes)

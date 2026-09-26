@@ -11,6 +11,7 @@
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Result.hpp>
+#include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Engine/Detours.hpp>
 #include <VoltMod/Host/PluginDescriptor.hpp>
 #include <algorithm>
@@ -49,7 +50,7 @@ public:
         _host = std::make_unique<PluginHost>(start, _gameData->Ready() ? _gameData.get() : nullptr);
         // Once for the process too: every plugin built with this host carries the same baked offsets.
         _schema = std::make_unique<SchemaService>();
-        _schema->Initialize(*_host, _host->GameData());
+        _schema->Initialize(*_host);
 
         _plugins = std::make_unique<PluginLoader>(*_host);
         _hooks = std::make_unique<EngineHooks>(
@@ -91,7 +92,6 @@ public:
     }
 
 private:
-    // In build order, so destruction runs backwards and the hooks stop before the plugins unload.
     std::unique_ptr<GameDataService> _gameData;
     std::unique_ptr<PluginHost> _host;
     std::unique_ptr<SchemaService> _schema;
@@ -107,12 +107,9 @@ static HostEntry g_host;
 extern "C" VOLTMOD_EXPORT bool VoltMod_HostStart(const VoltMod::HostStart* start, char* error, size_t errorSize)
 {
     VoltMod::Status started = VoltMod::g_host.Start(*start);
-    if (!started && errorSize > 0)
+    if (!started)
     {
-        const std::string_view detail = started.error().Detail;
-        const size_t length = std::min(errorSize - 1, detail.size());
-        std::memcpy(error, detail.data(), length);
-        error[length] = '\0';
+        VoltMod::Strings::CopyToBuffer(error, errorSize, started.error().Detail);
     }
     return started.has_value();
 }
