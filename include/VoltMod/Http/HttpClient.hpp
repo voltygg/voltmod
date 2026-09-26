@@ -3,6 +3,7 @@
 #include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
 #include <VoltMod/Http/HttpResult.hpp>
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
@@ -20,12 +21,29 @@ enum class HttpMethod
     Delete,
 };
 
+/** Orders header names ignoring ASCII case, as HTTP compares them. */
+struct HeaderNameLess
+{
+    using is_transparent = void;
+
+    bool operator()(std::string_view left, std::string_view right) const
+    {
+        return std::ranges::lexicographical_compare(left, right, {}, ToLower, ToLower);
+    }
+
+private:
+    static char ToLower(char c) { return c >= 'A' && c <= 'Z' ? static_cast<char>(c - 'A' + 'a') : c; }
+};
+
+/** Header name -> value; `Content-Type` and `content-type` are one entry. */
+using HttpHeaders = std::map<std::string, std::string, HeaderNameLess>;
+
 struct HttpRequest
 {
     HttpMethod Method = HttpMethod::Get;
     std::string Url;
     std::string Body;
-    std::map<std::string, std::string> Headers;
+    HttpHeaders Headers;
     long TimeoutMs = 8000;
 
     /**
