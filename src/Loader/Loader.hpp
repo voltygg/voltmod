@@ -22,7 +22,7 @@ inline constexpr const char* ServerFile = "libserver.so";
 inline constexpr const char* HostFile = "voltmod.so";
 #endif
 
-// Loader_Windows.cpp and Loader_Linux.cpp each implement these for their platform.
+// Loader.windows.cpp and Loader.linux.cpp each implement these for their platform.
 
 /** Null on failure, with the reason in @ref LastError. */
 void* OpenModule(const std::filesystem::path& path);

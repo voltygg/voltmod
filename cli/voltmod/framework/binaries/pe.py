@@ -3,7 +3,7 @@ import struct
 from voltmod.errors import VoltmodError
 from voltmod.framework.binaries.image import Image, Section
 
-# MSVC x64 RTTI offsets, as in VtableLookup_Windows.cpp.
+# MSVC x64 RTTI offsets, as in VtableLookup.windows.cpp.
 _DESCRIPTOR_NAME = 0x10
 _LOCATOR_DESCRIPTOR = 0x0C
 _LOCATOR_SELF = 0x14

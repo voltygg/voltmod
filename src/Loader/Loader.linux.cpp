@@ -1,7 +1,5 @@
 #include "Loader/Loader.hpp"
 
-#ifndef _WIN32
-
 #include <dlfcn.h>
 
 namespace VoltMod
@@ -51,5 +49,3 @@ InterfaceFactory FactoryAt(const void* address)
 }
 
 }  // namespace VoltMod
-
-#endif

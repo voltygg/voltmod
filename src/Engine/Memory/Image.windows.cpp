@@ -1,7 +1,5 @@
 #include "Engine/Memory/Image.hpp"
 
-#ifdef _WIN32
-
 #include <windows.h>
 
 #include <cstring>
@@ -71,5 +69,3 @@ bool FindModuleAndRanges(std::string_view fileName, Image& module, std::vector<S
 }
 
 }  // namespace VoltMod
-
-#endif

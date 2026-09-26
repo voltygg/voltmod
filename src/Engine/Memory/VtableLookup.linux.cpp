@@ -1,7 +1,5 @@
 #include "Engine/Memory/VtableLookup.hpp"
 
-#ifndef _WIN32
-
 #include <cstdint>
 #include <cstring>
 #include <dlfcn.h>
@@ -205,5 +203,3 @@ Result<BaseSubobject> FindBaseIn(const Image& module, std::string_view className
 }
 
 }  // namespace VoltMod
-
-#endif

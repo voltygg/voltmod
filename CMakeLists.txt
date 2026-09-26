@@ -67,11 +67,8 @@ set(VOLTMOD_PORTABLE_SOURCES
     src/Engine/Memory/BytePattern.cpp
     src/Engine/Memory/SigScanner.cpp
     src/Engine/Memory/VtableLookup.cpp
-    # One file in each pair is empty on this platform.
-    src/Engine/Memory/Image_Windows.cpp
-    src/Engine/Memory/Image_Linux.cpp
-    src/Engine/Memory/VtableLookup_Windows.cpp
-    src/Engine/Memory/VtableLookup_Linux.cpp
+    src/Engine/Memory/Image.${VOLTMOD_PLATFORM}.cpp
+    src/Engine/Memory/VtableLookup.${VOLTMOD_PLATFORM}.cpp
     src/Menu/MenuBuilder.cpp
     src/Menu/MenuPresets.cpp
     src/Menu/CenterHtmlRender.cpp
@@ -99,19 +96,16 @@ endif()
 file(GLOB_RECURSE VOLTMOD_SDK_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(REMOVE_ITEM VOLTMOD_SDK_SOURCES ${VOLTMOD_PORTABLE_SOURCES})
 list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/(Database|Host|Loader)/")
-
-# Schema offsets differ between the Windows and Linux builds of the game.
-if(WIN32)
-    list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Schema/Generated/linux/")
-else()
-    list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX "/src/Schema/Generated/windows/")
-endif()
+# The other platform's files, and its schema offsets.
+list(FILTER VOLTMOD_SDK_SOURCES EXCLUDE REGEX
+    "\\.${VOLTMOD_OTHER_PLATFORM}\\.cpp$|/src/Schema/Generated/${VOLTMOD_OTHER_PLATFORM}/")
 
 file(GLOB_RECURSE VOLTMOD_HTTP_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Http/*.cpp")
 file(GLOB_RECURSE VOLTMOD_DATABASE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Database/*.cpp")
 file(GLOB_RECURSE VOLTMOD_HOST_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Host/*.cpp")
 list(REMOVE_ITEM VOLTMOD_HOST_SOURCES ${VOLTMOD_PORTABLE_SOURCES})
 file(GLOB_RECURSE VOLTMOD_LOADER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Loader/*.cpp")
+list(FILTER VOLTMOD_LOADER_SOURCES EXCLUDE REGEX "\\.${VOLTMOD_OTHER_PLATFORM}\\.cpp$")
 
 add_library(voltmod-sdk STATIC ${VOLTMOD_SDK_SOURCES})
 add_library(VoltMod::Sdk ALIAS voltmod-sdk)

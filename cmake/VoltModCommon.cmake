@@ -7,16 +7,19 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(FATAL_ERROR "Only x86_64 builds are supported.")
 endif()
 
-# Build output directory name, and the server's addon binary directory.
+# <name>.windows.cpp and <name>.linux.cpp build only on their own platform.
 if(WIN32)
-    set(VOLTMOD_PLATFORM_ARCH "windows-x86_64")
-    set(VOLTMOD_BIN_SUBDIR "win64")
+    set(VOLTMOD_PLATFORM "windows")
+    set(VOLTMOD_OTHER_PLATFORM "linux")
+    set(VOLTMOD_BIN_SUBDIR "win64")  # the server's addon binary directory
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set(VOLTMOD_PLATFORM_ARCH "linux-x86_64")
+    set(VOLTMOD_PLATFORM "linux")
+    set(VOLTMOD_OTHER_PLATFORM "windows")
     set(VOLTMOD_BIN_SUBDIR "linuxsteamrt64")
 else()
     message(FATAL_ERROR "Only Windows and Linux builds are supported.")
 endif()
+set(VOLTMOD_PLATFORM_ARCH "${VOLTMOD_PLATFORM}-x86_64")  # build output directory name
 
 # First-party targets only. Embedded (/Z7) debug info: ccache caches it, and framework frames land in plugin PDBs.
 function(voltmod_set_cxx_defaults target)
