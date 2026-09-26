@@ -110,12 +110,15 @@ plugin rather than the whole stack.
 7. For each plugin it opens the library, resolves `VoltMod_PluginEntry`, checks the descriptor's
    ABI version and its `Load`/`Unload`/`Status` pointers, opens a host view under the plugin's
    name and log tag, then calls `Load`.
-8. Inside the plugin, the internal module seeds its hook dispatch pointer, creates the `Runtime`,
-   and runs `Runtime::Initialize`: logging, engine interfaces, then the framework load steps, among
-   them the schema stamp comparison that refuses a plugin built against a different layout.
-9. The module constructs the derived `Plugin`, subscribes to host events, then calls `Load`. A
-   `false` from `Load` returns the first required step's reason to the host, which logs it as the
-   refusal, destroys the plugin, and frees its library.
+8. Inside the plugin, the internal module seeds its hook dispatch pointer, installs the log
+   handler, and compares the schema stamp, refusing a plugin built against a different layout. It
+   then resolves the engine interfaces and binds gamedata, and builds the `Runtime`: each service
+   does its setup in its constructor, and the runtime records them as load steps.
+9. The module constructs the derived `Plugin`, whose members load settings and subscribe as they
+   are built. A required step that failed so far refuses the plugin here, before `Load`. Otherwise
+   it subscribes to host events and calls `Load`. A `false` from `Load` returns the first required
+   step's reason to the host, which logs it as the refusal, destroys the plugin, and frees its
+   library.
 10. The host logs `N of M installed plugin(s) loaded.`
 
 Unload runs in reverse: the plugin's commands, the plugin object, its host-event subscriptions,
@@ -144,8 +147,9 @@ carry a version in their name; see @ref host_guide.
 ## Lifetimes
 
 @ref VoltMod::Runtime is the service container for one load cycle: created on load, destroyed on
-unload, with most services as direct members in dependency order. Your `App` holds what the plugin
-owns for that same cycle and is destroyed first, so its subscriptions unregister while the
+unload, with most services as direct members in dependency order. Each service is ready when it is
+built; there is no second `Initialize` step. Your `App` holds what the plugin owns for that same
+cycle, its members also in dependency order with the settings first, and is destroyed first, so its subscriptions unregister while the
 services they reference are still alive. That pair is what makes `volt reload` start clean.
 
 ```cpp

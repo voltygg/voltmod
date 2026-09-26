@@ -274,18 +274,15 @@ screen and takes clicks instead of keys.
 // App.hpp
 VoltMod::PanoramaMenuLayout _layout{runtime.Screens, AdminMenuLayout::Name, AdminMenuLayout::Tabs.size(),
                                      AdminMenuLayout::Rows.size(), AdminMenuLayout::IconSetNames};
-std::optional<VoltMod::PanoramaMenu> _panorama;
-VoltMod::Subscription _preferPanorama;           // after the menu, so it lets go first
+VoltMod::Subscription _panorama;                 // after the layout, which the menu draws on
 
 // App::Load; settings.menu is a VoltMod::PanoramaMenuSettings
 if (const auto& menu = settings.menu; menu.panorama)
-{
-    _panorama.emplace(runtime.PanoramaMenuServices(), _layout, menu.addonId);
-    _preferPanorama = runtime.Menus.Prefer(*_panorama);
-}
+    _panorama = runtime.UsePanorama(_layout, menu.addonId);
 ```
 
-While the preference is held, `OpenSession` tries the Panorama menu first and falls back to center HTML
+`UsePanorama` builds the menu from the runtime's services and makes `runtime.Menus` prefer it, for
+as long as the returned `Subscription` lives. While it is held, `OpenSession` tries the Panorama menu first and falls back to center HTML
 for a player who cannot see the layout - a binding it needs is off, or the client is still
 downloading the addon. Every later call follows the surface holding that player's session, and
 starting a session closes the one the player had on the other surface. `addonId` is 0 when the

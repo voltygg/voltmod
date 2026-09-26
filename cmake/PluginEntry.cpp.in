@@ -1,0 +1,36 @@
+#include "App.hpp"
+
+#include <VoltMod/App/Internal/PluginModule.hpp>
+#include <VoltMod/Host/Abi.hpp>
+#include <VoltMod/Host/PluginDescriptor.hpp>
+
+// Written by voltmod_add_plugin for @plugin_class@: the module and the entry point the host resolves.
+static auto g_voltmodPlugin = ::VoltMod::Internal::MakePluginModule<@plugin_class@>();
+
+namespace KHook
+{
+KHook::IKHook* __exported__khook = nullptr;
+}
+
+static bool VoltMod_PluginLoad(::VoltMod::IHost* host, char* error, size_t errorSize) noexcept
+{
+    return host && g_voltmodPlugin.Attach(*host, error, errorSize);
+}
+
+static void VoltMod_PluginUnload() noexcept
+{
+    g_voltmodPlugin.Detach();
+}
+
+static const char* VoltMod_PluginStatus() noexcept
+{
+    return g_voltmodPlugin.StatusJson();
+}
+
+static const ::VoltMod::PluginDescriptor g_voltmodDescriptor{::VoltMod::HostAbiVersion, &VoltMod_PluginLoad,
+                                                             &VoltMod_PluginUnload, &VoltMod_PluginStatus};
+
+extern "C" VOLTMOD_EXPORT const ::VoltMod::PluginDescriptor* VoltMod_PluginEntry() noexcept
+{
+    return &g_voltmodDescriptor;
+}

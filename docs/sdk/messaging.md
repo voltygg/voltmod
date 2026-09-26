@@ -63,16 +63,15 @@ runtime.Hooks.ChatInput.BeginCapture(slot, "Enter your nickname:",
 The service subscribes to @ref VoltMod::SlotEvents itself, so a pending prompt is cancelled when the
 slot changes hands.
 
-`Plugin::OnPlayerChat` already consumes active prompts before dispatching commands. An override
-replaces that, so it must call `TryConsume` first or menu text input never completes:
+The framework consumes active prompts before it dispatches commands, and raises
+`runtime.Players.Said` only for a line neither took. A plugin with its own chat rules subscribes to
+that and sets `Blocked` to keep the line out of chat:
 
 ```cpp
-bool MyPlugin::OnPlayerChat(Player* p, std::string_view message, bool team) override
-{
-    if (_app->Runtime.Hooks.ChatInput.TryConsume(p->Slot(), message))
-        return true;   // the capture handled it; don't broadcast
-    return false;      // fall through to normal chat handling
-}
+_subs.Add(runtime.Players.Said += [this](VoltMod::ChatMessage& chat) {
+    if (IsMuted(chat.Sender.SteamId()))
+        chat.Blocked = true;
+});
 ```
 
 ## Vote

@@ -23,7 +23,7 @@ VirtualFn<void(CEntityInstance*, int)> ChangeTeam;           // vtables."CCSPlay
 OffsetOf<int> ClientSlot;                                    // offsets."CServerSideClientBase::m_nClientSlot"
 ```
 
-Each plugin's `Runtime::Initialize()` calls `Bindings::Bind`, which takes every member in one pass from
+Each plugin module calls `Bindings::Bind` before it builds the runtime, taking every member in one pass from
 a @ref VoltMod::GameDataLookup over what the host already resolved. Services then hold
 `const Bindings&`, so no call path does a string lookup. No plugin reads the file or scans memory
 itself: a signature a game update broke costs one scan and one error line for the whole server.

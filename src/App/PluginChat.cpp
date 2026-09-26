@@ -1,25 +1,10 @@
 #include <VoltMod/App/Internal/PluginModule.hpp>
-#include <VoltMod/App/Plugin.hpp>
 #include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <string_view>
 
-namespace VoltMod
-{
-
-bool Plugin::OnPlayerChat(Player* player, std::string_view message, bool /*teamChat*/)
-{
-    // Menu input takes precedence over command parsing.
-    if (Runtime.Hooks.ChatInput.TryConsume(player->Slot(), message))
-    {
-        return true;
-    }
-
-    return Runtime.Commands.HandleChatMessage(player, message);
-}
-
-namespace Internal
+namespace VoltMod::Internal
 {
 
 bool PluginModule::OnConsoleCommand(std::string_view name, std::string_view arguments, int slot)
@@ -58,8 +43,20 @@ bool PluginModule::OnConsoleCommand(std::string_view name, std::string_view argu
     }
 
     Player* player = _runtime->Players.Get(slot);
-    return player != nullptr && _plugin->OnPlayerChat(player, message, teamChat);
+    if (!player)
+    {
+        return false;
+    }
+
+    // Menu input takes precedence over command parsing.
+    if (_runtime->Hooks.ChatInput.TryConsume(slot, message) || _runtime->Commands.HandleChatMessage(player, message))
+    {
+        return true;
+    }
+
+    ChatMessage chat{.Sender = *player, .Text = message, .TeamOnly = teamChat};
+    _runtime->Players.Said.Raise(chat);
+    return chat.Blocked;
 }
 
-}  // namespace Internal
-}  // namespace VoltMod
+}  // namespace VoltMod::Internal

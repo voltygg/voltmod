@@ -49,14 +49,12 @@ ConVars::~ConVars()
     StopRoutingChanges();
 }
 
-Status ConVars::Initialize()
+Status ConVars::Available() const
 {
     if (!_interfaces.CVar)
     {
         return std::unexpected(Error::NotReady("ICvar not available"));
     }
-
-    Log::Info("ConVar service initialized.");
     return {};
 }
 

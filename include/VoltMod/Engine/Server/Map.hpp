@@ -1,5 +1,6 @@
 #pragma once
 
+#include <VoltMod/Core/Signals/Event.hpp>
 #include <VoltMod/Engine/ConVars/ConVar.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <cstdint>
@@ -16,6 +17,9 @@ class Map
 public:
     /** Both dependencies must outlive this service. */
     Map(Interfaces& interfaces, ConVars& conVars);
+
+    /** A map started, with its name. Raised after the framework's own services have refreshed. */
+    Event<std::string_view> Started;
 
     /** Whether the engine can load a mounted, non-workshop map. */
     bool IsValid(std::string_view name) const;

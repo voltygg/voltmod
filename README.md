@@ -49,32 +49,34 @@ A plugin needs a manifest, an entry point, and one CMake declaration.
 }
 ```
 
-`plugins/my-plugin/src/App.cpp`:
+`plugins/my-plugin/src/App.hpp`:
 
 ```cpp
+#pragma once
+
 #include <VoltMod/Api.hpp>
-#include <VoltMod/App/PluginEntry.hpp>
 
 namespace MyPlugin
 {
 
 struct App final : VoltMod::Plugin
 {
-    explicit App(VoltMod::Runtime& runtime) : Plugin(runtime) {}
+    using Plugin::Plugin;
 
     bool Load() override
     {
         // "cmd.pong" is a translation key. An untranslated key is replied verbatim.
         Runtime.Commands.Add("ping").Describe("Check that the plugin is alive.").Run(
-            [](VoltMod::Caller c) -> VoltMod::Result<VoltMod::Reply> { return c.Ok("cmd.pong"); });
+            [](VoltMod::Caller c) { return c.Ok("cmd.pong"); });
         return true;
     }
 };
 
 }  // namespace MyPlugin
-
-VOLTMOD_PLUGIN(MyPlugin::App);
 ```
+
+`voltmod_add_plugin` generates the entry point for `MyPlugin::App`, the namespace spelled from the
+plugin name.
 
 `plugins/my-plugin/CMakeLists.txt`:
 

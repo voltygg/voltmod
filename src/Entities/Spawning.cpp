@@ -11,6 +11,14 @@ static constexpr int SolidVPhysics = 6;
 
 Status EntitySystem::Available() const
 {
+    if (!_interfaces.GameResourceService)
+    {
+        return std::unexpected(Error::NotReady("IGameResourceService not available"));
+    }
+    if (!_bindings.GameEntitySystem)
+    {
+        return std::unexpected(Error::Unsupported("the GameEntitySystem offset did not bind"));
+    }
     if (!_bindings.CreateEntityByName || !_bindings.DispatchSpawn)
     {
         return std::unexpected(Error::Unsupported("CreateEntityByName or DispatchSpawn did not bind"));

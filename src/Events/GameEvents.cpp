@@ -12,15 +12,6 @@ namespace VoltMod
 {
 
 GameEvents::GameEvents(Interfaces& interfaces, const Bindings& bindings) : _interfaces(interfaces), _bindings(bindings)
-{}
-
-GameEvents::~GameEvents()
-{
-    // Remove the listener before destroying it.
-    RemoveAllListeners();
-}
-
-Status GameEvents::Initialize()
 {
     if (_bindings.LegacyGameEventListener)
     {
@@ -31,19 +22,28 @@ Status GameEvents::Initialize()
         Log::Warn("LegacyGameEventListener signature not found; per-client event delivery unavailable.");
     }
 
+    if (_bindings.GameEventManager)
+    {
+        _interfaces.GameEventManager = ReadAt<IGameEventManager2*>(_bindings.GameEventManager.Ptr(), 0);
+    }
+}
+
+GameEvents::~GameEvents()
+{
+    // Remove the listener before destroying it.
+    RemoveAllListeners();
+}
+
+Status GameEvents::Available() const
+{
     if (!_bindings.GameEventManager)
     {
         return std::unexpected(Error::Unsupported("the GameEventManager address did not bind"));
     }
-
-    _interfaces.GameEventManager = ReadAt<IGameEventManager2*>(_bindings.GameEventManager.Ptr(), 0);
     if (!_interfaces.GameEventManager)
     {
         return std::unexpected(Error::Engine("the game event manager pointer is null"));
     }
-
-    Log::Info("Game event service initialized (manager at {:#x}).",
-              reinterpret_cast<uintptr_t>(_interfaces.GameEventManager));
     return {};
 }
 

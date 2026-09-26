@@ -20,14 +20,18 @@ struct LoadConfigOptions
 };
 
 /**
- * @brief Load the plugin's settings, then its translations.
+ * @brief Load the plugin's settings, then its translations, and return @p config.
+ *
+ * Meant for the App's `Config` member initializer, so every member below it is built with settings:
+ * `ConfigManager Config = VoltMod::LoadConfig<ConfigManager>(Runtime);`.
  *
  * The required "Configuration" step reads the plugin's @ref LoadConfigOptions::SettingsFile
- * through TConfig::LoadSettings when available, otherwise Options::Load. Translation loading then
+ * through TConfig::LoadSettings when available, otherwise Options::Load. A failure keeps the
+ * defaults, and the framework refuses the plugin before `Load` runs. Translation loading then
  * applies `plugin.locale` and reads the plugin's `translations` directory when enabled.
  */
 template <class TConfig>
-bool LoadConfig(Runtime& runtime, TConfig& config, const LoadConfigOptions& options = {})
+TConfig LoadConfig(Runtime& runtime, TConfig config = {}, const LoadConfigOptions& options = {})
 {
     const std::string path = runtime.PluginFile(options.SettingsFile);
     const bool loaded = runtime.LoadSteps.Required("Configuration", [&] {
@@ -41,7 +45,8 @@ bool LoadConfig(Runtime& runtime, TConfig& config, const LoadConfigOptions& opti
                 return config.Load(path);
             }
         }();
-        if (!status)
+        // A parse error already names the file.
+        if (!status && !status.error().Detail.starts_with(path))
         {
             status.error().Detail = std::format("{}: {}", path, status.error().Detail);
         }
@@ -49,7 +54,7 @@ bool LoadConfig(Runtime& runtime, TConfig& config, const LoadConfigOptions& opti
     });
     if (!loaded)
     {
-        return false;
+        return config;
     }
 
     if (options.Translations)
@@ -61,7 +66,7 @@ bool LoadConfig(Runtime& runtime, TConfig& config, const LoadConfigOptions& opti
         }
         translations.Load(runtime.PluginFile("translations"));
     }
-    return true;
+    return config;
 }
 
 }  // namespace VoltMod

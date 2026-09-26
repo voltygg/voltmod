@@ -10,7 +10,9 @@ The shapes the framework already uses. New code follows them instead of adding a
 
 ## Runtime and injection
 
-- `Plugin` is the user-owned object for one load cycle. The internal module constructs it with a live `Runtime`, calls `Load`, and destroys it before the runtime.
+- `Plugin` is the user-owned object for one load cycle. The internal module constructs it with a live `Runtime`, checks the load steps, calls `Load`, and destroys it before the runtime. `voltmod_add_plugin` generates the entry point; there is no macro.
+- A service is ready when built: it takes resolved interfaces and bindings in its constructor, does its setup there, and reports what did not bind through `Available()`. No `Initialize()`, `Attach()` or other second step. The module opens `UnsafeServices` before the runtime, and the runtime records each service as a load step.
+- Lifecycle signals are `Event` members (`Map.Started`, `Players.Said`), not `Plugin` virtuals. A registration that withdraws something, `Exchange.Publish` included, returns a `Subscription`.
 - `Runtime` is a flat service container (`runtime.Players`, `runtime.Trace`), so moving a service between modules does not rename the consumer API. No grouping structs such as a `runtime.World`.
 - No ambient accessor. Constructor-inject the narrowest service that does the job: `CenterHtmlMenu(const CenterHtmlMenu::Services&)`, `ActionDispatcher(Policy&)`, never `Runtime&`. Only `Commands` and `App` may take `Runtime&`.
 - Header templates plugins instantiate (`Flow<TState>`, `PerSlot<T>`) take one service, so including them does not pull in the composition root.
@@ -50,7 +52,7 @@ The shapes the framework already uses. New code follows them instead of adding a
 - `Entity`, `Pawn`, `Controller` are frame-local wrappers. `explicit operator bool()` is the only validity check; they copy but do not assign. Anything stored is an `EntityRef`/`PlayerRef` re-resolved through `EntitySystem`.
 - A verb lives on the wrapper it acts on (`entity.Remove()`, `pawn.Slay()`); creating one lives on `EntitySystem`. Wrappers reach the engine through the `EntitySystem` that made them, never a service of their own. No verb takes a raw `CEntityInstance*`.
 - A schema field is a generated `Health()`/`SetHealth()` pair. `voltmod framework schemagen` bakes the offset from `schema/manifest.json` plus a dump; the setter dirties the write through the entity, a `__m_pChainEntity` chainer, or the enclosing entity.
-- No schema service, no runtime resolution, no string lookup on a call path. The host compares the baked layout with the live schema once per process and `Runtime::Initialize` aborts a plugin's load when it disagrees, or when the plugin's layout stamp is not the one the host checked.
+- No schema service, no runtime resolution, no string lookup on a call path. The host compares the baked layout with the live schema once per process and the plugin module aborts a plugin's load when it disagrees, or when the plugin's layout stamp is not the one the host checked.
 
 ## Gamedata, convars, enums
 

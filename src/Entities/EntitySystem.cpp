@@ -33,7 +33,13 @@ static_assert(MaxPlayers == ABSOLUTE_PLAYER_LIMIT);
 
 EntitySystem::EntitySystem(VoltMod::Interfaces& interfaces, const VoltMod::Bindings& bindings)
     : _interfaces(interfaces), _bindings(bindings)
-{}
+{
+    if (_interfaces.GameResourceService && _bindings.GameEntitySystem)
+    {
+        Log::Info("Gamedata loaded (entity system offset: {}).", _bindings.GameEntitySystem.Value());
+        Raw();
+    }
+}
 
 EntitySystem::~EntitySystem()
 {
@@ -71,24 +77,6 @@ CGameEntitySystem* EntitySystem::ReadEntitySystemPointer()
         }
     }
     return system;
-}
-
-Status EntitySystem::Initialize()
-{
-    if (!_interfaces.GameResourceService)
-    {
-        return std::unexpected(Error::NotReady("IGameResourceService not available"));
-    }
-
-    if (!_bindings.GameEntitySystem)
-    {
-        return std::unexpected(Error::Unsupported("the GameEntitySystem offset did not bind"));
-    }
-    Log::Info("Gamedata loaded (entity system offset: {}).", _bindings.GameEntitySystem.Value());
-
-    // Null is expected before the first map; OnServerStartup retries and callers decide whether it is required.
-    Raw();
-    return {};
 }
 
 void EntitySystem::OnServerStartup()

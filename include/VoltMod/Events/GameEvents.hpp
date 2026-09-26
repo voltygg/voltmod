@@ -23,14 +23,15 @@ namespace VoltMod
 class GameEvents : public IGameEventListener2
 {
 public:
-    /** Dependencies must outlive this service, which detaches from the engine on destruction. */
+    /** Reads IGameEventManager2 from its gamedata address into @p interfaces. Dependencies must
+     *  outlive this service, which detaches from the engine on destruction. */
     GameEvents(Interfaces& interfaces, const Bindings& bindings);
     ~GameEvents() override;
     GameEvents(const GameEvents&) = delete;
     GameEvents& operator=(const GameEvents&) = delete;
 
-    /** Read IGameEventManager2 from its gamedata address and attach. Error when it did not resolve. */
-    Status Initialize();
+    /** An error when the event manager did not resolve. */
+    Status Available() const;
 
     IGameEvent* CreateEvent(std::string_view name);
     bool FireEvent(IGameEvent* event, bool broadcast = true);

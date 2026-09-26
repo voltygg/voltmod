@@ -4,6 +4,30 @@
 
 What changed in each VoltMod release. Older history is in git.
 
+## Unreleased
+
+### Breaking
+
+- Drop `VOLTMOD_PLUGIN` and `<VoltMod/App/PluginEntry.hpp>`: `voltmod_add_plugin` generates the entry
+  point for the `<Namespace>::App` in `src/App.hpp`.
+- Replace the App constructor with `using Plugin::Plugin;` and load settings in the member initializer,
+  `ConfigManager Config = VoltMod::LoadConfig<ConfigManager>(Runtime);`. `Load` is optional, and a
+  failed settings file refuses the plugin before it runs.
+- Subscribe to `Runtime.Map.Started` and `Runtime.Players.Said` where you overrode `OnServerStartup`
+  and `OnPlayerChat`; menu input and `!` commands are handled before `Said`.
+- Keep the `Subscription` that `Exchange.Publish` returns; `Unpublish` is gone.
+- Call `Runtime.UsePanorama(layout, addonId)` where you built a `PanoramaMenu` from
+  `PanoramaMenuServices()` and called `Menus.Prefer`.
+- Command handlers need no `-> Result<Reply>` unless they mix `Reply::Silent()` with `Ok`/`Fail`, and
+  may return nothing. `Caller::Tr` is `Caller::Translations`.
+- `Messages::Reply` and `ReplyKey` are `Send` and `SendKey`.
+
+### New
+
+- `Messages::BroadcastKey` sends a key to every player in their own language.
+- `Args::Target` reads through `->`, and `Args::Opt::ValueOr` returns the value or a fallback.
+- `Options::Reload()` reads the settings file again.
+
 ## 1.7.0 (2026-09-26)
 
 ### Breaking

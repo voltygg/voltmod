@@ -20,8 +20,8 @@ namespace VoltMod
 /**
  * @brief Engine hooks grouped by function.
  *
- * Most hooks install on first subscription and remove after the last one. ClientConVars is
- * initialized by Runtime::Initialize.
+ * Most hooks install on first subscription and remove after the last one. ClientConVars installs
+ * its response hook when built.
  */
 struct HookServices
 {

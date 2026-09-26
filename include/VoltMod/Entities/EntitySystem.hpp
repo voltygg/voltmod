@@ -39,7 +39,8 @@ struct PropSpec
 class EntitySystem
 {
 public:
-    /** @p interfaces and @p bindings must outlive this service. */
+    /** Reads the entity system, which is null before the first map. @p interfaces and @p bindings
+     *  must outlive this service. */
     EntitySystem(VoltMod::Interfaces& interfaces, const VoltMod::Bindings& bindings);
     ~EntitySystem();
     EntitySystem(const EntitySystem&) = delete;
@@ -66,7 +67,8 @@ public:
     /** Every living player's pawn, in slot order. */
     std::vector<VoltMod::Pawn> AlivePawns();
 
-    /** Unsupported when entities cannot be created or spawned. */
+    /** An error when entity lookups can never work, or entities cannot be created or spawned. A
+     *  missing system before the first map is fine: @ref OnServerStartup picks it up. */
     Status Available() const;
 
     /** A new entity that has not spawned yet: set its fields, then call @ref Entity::Spawn. */
@@ -86,10 +88,6 @@ public:
 
     /** @name Framework plumbing */
     /** @{ */
-    /** An error only when entity lookups can never work; a missing system before the first map is
-     *  fine, and @ref OnServerStartup picks it up. */
-    Status Initialize();
-
     /** Re-read the system for the new map. */
     void OnServerStartup();
 

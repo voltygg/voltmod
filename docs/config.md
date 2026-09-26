@@ -35,22 +35,28 @@ operator reads.
 ## Loading
 
 ```cpp
-bool App::Load()
+struct App final : VoltMod::Plugin
 {
-    return VoltMod::LoadConfig(Runtime, Config);
-}
+    using Plugin::Plugin;
+
+    ConfigManager Config = VoltMod::LoadConfig<ConfigManager>(Runtime);
+    BhopManager Bhop{Runtime, Config};   // built with the settings already loaded
+};
 ```
 
 `LoadConfig` runs a required `Configuration` load step that reads
 `addons/voltmod/plugins/<plugin>/configs/settings.jsonc`, then loads the plugin's `translations` and
-applies `plugin.locale` when the settings struct embeds @ref VoltMod::StandardPluginSettings. It
-returns false when the settings step failed, which is what aborts the load.
+applies `plugin.locale` when the settings struct embeds @ref VoltMod::StandardPluginSettings, and
+returns the config. When the settings step fails the defaults stand, and the framework refuses the
+plugin before `Load` runs, so members below `Config` must not act outside the plugin in their
+constructors: a server convar or a published service waits for `Load`.
 
-`LoadConfigOptions` changes either half:
+A config type with a builder is passed in, and `LoadConfigOptions` changes either half:
 
 ```cpp
-VoltMod::LoadConfig(Runtime, Config, {.SettingsFile = "configs/other.jsonc"});
-VoltMod::LoadConfig(Runtime, Config, {.Translations = false});
+ConfigManager Config = VoltMod::LoadConfig(Runtime, ConfigManager{&BuildSnapshot});
+ConfigManager Config = VoltMod::LoadConfig<ConfigManager>(Runtime, {}, {.SettingsFile = "configs/other.jsonc"});
+ConfigManager Config = VoltMod::LoadConfig<ConfigManager>(Runtime, {}, {.Translations = false});
 ```
 
 It calls your config type's `LoadSettings(path)` when it has one, otherwise `Options::Load(path)`.
@@ -67,6 +73,7 @@ class ConfigManager
 {
 public:
     VoltMod::Status LoadSettings(std::string_view path) { return _options.Load(path); }
+    VoltMod::Status Reload() { return _options.Reload(); }
 
     /** Returns the effective settings, which is what LoadConfig reads plugin.locale from. */
     const Settings& Get() const { return _options.Get().Values; }
@@ -122,12 +129,12 @@ ConfigManager::Snapshot ConfigManager::BuildSnapshot(Settings raw)
 
 ## Reloading
 
-`Load` is the reload: it parses the file again, rebuilds the snapshot and swaps it in. A failure
-returns the error and changes nothing, so a command can report the offending key and keep serving
-the settings already in memory.
+`Options` remembers the file it loaded, and `Reload()` parses it again, rebuilds the snapshot and
+swaps it in. A failure returns the error and changes nothing, so a command can report the offending
+key and keep serving the settings already in memory.
 
 ```cpp
-if (auto loaded = Config.LoadSettings(Runtime.PluginFile("configs/settings.jsonc")); !loaded)
+if (auto loaded = Config.Reload(); !loaded)
     return Reply{std::format("Settings not reloaded: {}", loaded.error().Detail)};
 ```
 

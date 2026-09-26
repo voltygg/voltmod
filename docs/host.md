@@ -80,7 +80,7 @@ protected:
     ~IBanService() = default;
 };
 
-runtime.Exchange.Publish<IBanService>(&_bans);          // provider, in Load
+_published = runtime.Exchange.Publish<IBanService>(&_bans);   // provider, in Load; a Subscription
 
 if (auto* bans = runtime.Exchange.Get<IBanService>())   // consumer, where it is used
     Check(*bans);
@@ -91,7 +91,7 @@ casts back to. Put a version in `InterfaceName` and bump it whenever the vtable 
 meaning changes: a stale consumer then gets `nullptr` instead of a mismatched vtable.
 
 Several providers of one interface pass a key: `Publish<IMenuSection>(this, "admin")`, then
-`Get<IMenuSection>("admin")` and `Unpublish<IMenuSection>("admin")`.
+`Get<IMenuSection>("admin")`.
 
 Ask for a service where you use it and do not keep the pointer. The publisher can unload between
 callbacks, never inside one, so a pointer fetched at the point of use cannot dangle before you
@@ -99,7 +99,9 @@ are done with it. Never transfer ownership across the boundary, never pass an ob
 allocator owns, and let no exception escape an interface call. Use a @ref VoltMod::ServerCommand
 instead when console, RCON or cfg files need the operation too.
 
-Withdraw with `Unpublish<T>()` or let the unload do it; the host reports anything left behind.
+`Publish` returns a `Subscription` that withdraws the entry when it drops. Keep it as the last member
+of the object it offers, so the entry goes before anything the object reaches; the host reports
+anything left behind at unload.
 
 ## Troubleshooting
 

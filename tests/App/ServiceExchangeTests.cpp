@@ -51,13 +51,11 @@ private:
     std::unordered_map<std::string, void*> _entries;
 };
 
-/** An exchange attached to its own table, as the plugin module wires one up. */
+/** An exchange over its own table, as the plugin module wires one up. */
 struct Attached
 {
     FakeServices Services;
-    ServiceExchange Exchange;
-
-    Attached() { Exchange.Attach(&Services); }
+    ServiceExchange Exchange{Services};
 };
 
 TEST_CASE("Get returns the published interface subobject, under its own name only")
@@ -65,7 +63,7 @@ TEST_CASE("Get returns the published interface subobject, under its own name onl
     Attached host;
     auto& exchange = host.Exchange;
     Both impl;
-    exchange.Publish<ICounter>(&impl);
+    auto published = exchange.Publish<ICounter>(&impl);
 
     // ICounter is the second base, at a non-zero offset: 9 rather than 7 proves the right vtable.
     ICounter* found = exchange.Get<ICounter>();
@@ -74,15 +72,15 @@ TEST_CASE("Get returns the published interface subobject, under its own name onl
     CHECK(exchange.Get<IGreeter>() == nullptr);
 }
 
-TEST_CASE("Unpublish withdraws only the named interface")
+TEST_CASE("Dropping the subscription withdraws only that interface")
 {
     Attached host;
     auto& exchange = host.Exchange;
     Both impl;
-    exchange.Publish<IGreeter>(&impl);
-    exchange.Publish<ICounter>(&impl);
+    auto greeter = exchange.Publish<IGreeter>(&impl);
+    auto counter = exchange.Publish<ICounter>(&impl);
 
-    exchange.Unpublish<IGreeter>();
+    greeter.Reset();
 
     CHECK(exchange.Get<IGreeter>() == nullptr);
     CHECK(exchange.Get<ICounter>() != nullptr);
@@ -94,23 +92,14 @@ TEST_CASE("Keyed providers of one interface are found and withdrawn apart")
     auto& exchange = host.Exchange;
     Both first;
     Both second;
-    exchange.Publish<ICounter>(&first, "first");
-    exchange.Publish<ICounter>(&second, "second");
+    auto firstEntry = exchange.Publish<ICounter>(&first, "first");
+    auto secondEntry = exchange.Publish<ICounter>(&second, "second");
 
     CHECK(exchange.Get<ICounter>("first") == &first);
     CHECK(exchange.Get<ICounter>() == nullptr);
 
-    exchange.Unpublish<ICounter>("first");
+    firstEntry.Reset();
 
     CHECK(exchange.Get<ICounter>("first") == nullptr);
     CHECK(exchange.Get<ICounter>("second") == &second);
-}
-
-TEST_CASE("An exchange with no host attached publishes nowhere and finds nothing")
-{
-    ServiceExchange exchange;
-    Both impl;
-    exchange.Publish<IGreeter>(&impl);
-
-    CHECK(exchange.Get<IGreeter>() == nullptr);
 }

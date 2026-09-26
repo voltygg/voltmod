@@ -190,13 +190,8 @@ loaded (ICvar must be live), typically as a manager member so unload cleans it u
 ```cpp
 class MyManager
 {
-    std::optional<VoltMod::ServerCommand> _cmd;
-
-    void Initialize()
-    {
-        _cmd.emplace("myplugin_do", "Do the thing: myplugin_do <steamid64>",
-                     [this](const CCommand& args, int slot) { /* args.ArgC(), args.Arg(1), ... */ });
-    }
+    VoltMod::ServerCommand _cmd{"myplugin_do", "Do the thing: myplugin_do <steamid64>",
+                                [this](const CCommand& args, int slot) { /* args.ArgC(), args.Arg(1), ... */ }};
 };
 ```
 

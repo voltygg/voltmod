@@ -17,10 +17,9 @@ namespace VoltMod
 /**
  * @brief Per-player pending-prompt registry for menu free-text input.
  *
- * @ref Plugin::OnPlayerChat calls @ref TryConsume for every `say`/`say_team`
- * message before command parsing. An active capture routes the message to its
- * callback and suppresses the chat broadcast. Overrides must make the same call
- * or menu text input will not complete.
+ * The framework calls @ref TryConsume for every `say`/`say_team` message before
+ * command parsing. An active capture routes the message to its callback and
+ * suppresses the chat broadcast.
  *
  * This service does not install a separate chat hook: `player_say` runs after the
  * broadcast. The consume call must remain in `Hook_DispatchConCommand`.

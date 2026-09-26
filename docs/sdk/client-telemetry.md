@@ -76,8 +76,8 @@ evidence, not proof.
 
 ### Availability
 
-`Runtime::Initialize` runs this as an optional load step, because queries have no event subscription that
-could install the hook lazily. It needs two gamedata values plus an RTTI or symbol lookup of the
+The service installs its hook when the runtime is built and is recorded as an optional load step,
+because queries have no event subscription that could install the hook lazily. It needs two gamedata values plus an RTTI or symbol lookup of the
 `CServerSideClient` vtable:
 
 | Gamedata entry | What it is | If it drifts |

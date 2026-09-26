@@ -4,8 +4,8 @@
 
 ## The smallest plugin
 
-A plugin is a library with one exported entry point, a `plugin.json` beside its `CMakeLists.txt`,
-and an `App` class that owns everything for one load cycle.
+A plugin is a library with a `plugin.json` beside its `CMakeLists.txt` and an `App` class in
+`src/App.hpp` that owns everything for one load cycle.
 
 ```cpp
 // src/App.hpp
@@ -19,12 +19,13 @@ namespace MyPlugin
 
 struct App final : VoltMod::Plugin
 {
-    explicit App(VoltMod::Runtime& runtime) : Plugin(runtime) {}
+    using Plugin::Plugin;
 
-    /** Load config and register commands. Returning false aborts the load. */
+    /** Register commands. Returning false aborts the load. */
     bool Load() override;
 
-    ConfigManager Config;
+    /** Loaded first, so every member below is built with settings. */
+    ConfigManager Config = VoltMod::LoadConfig<ConfigManager>(Runtime);
 
 private:
     /** Declared last, so handlers stop before the state they capture goes away. */
@@ -39,9 +40,6 @@ private:
 #include "App.hpp"
 
 #include <VoltMod/Api.hpp>
-#include <VoltMod/App/PluginEntry.hpp>
-
-VOLTMOD_PLUGIN(MyPlugin::App);
 
 namespace MyPlugin
 {
@@ -50,9 +48,6 @@ void RegisterCommands(VoltMod::CommandManager& commands);   // defined in src/Co
 
 bool App::Load()
 {
-    if (!VoltMod::LoadConfig(Runtime, Config))
-        return false;
-
     RegisterCommands(Runtime.Commands);
     return true;
 }
@@ -60,22 +55,26 @@ bool App::Load()
 }  // namespace MyPlugin
 ```
 
-`VOLTMOD_PLUGIN` goes at global scope in exactly one `.cpp`, and
-`<VoltMod/App/PluginEntry.hpp>` is included only there. The macro defines the plugin object, this module's hook dispatch pointer and
-`VoltMod_PluginEntry`, the one symbol the host resolves.
+There is no entry macro. `voltmod_add_plugin` generates the entry point for `<Namespace>::App`,
+where the namespace is the plugin name with each word capitalized (`admin-system` is
+`AdminSystem`), and fails at configure time when `src/App.hpp` is missing. The generated file
+defines the plugin object, this module's hook dispatch pointer and `VoltMod_PluginEntry`, the one
+symbol the host resolves.
 
-Your `App` derives from @ref VoltMod::Plugin. The framework constructs it from `Runtime&` after
-the runtime starts and destroys it before the runtime shuts down.
+Your `App` derives from @ref VoltMod::Plugin. The framework builds the runtime with every service
+ready, constructs the `App` from `Runtime&`, and destroys it before the runtime shuts down.
 
 | Override | Required | Called |
 | --- | --- | --- |
-| `bool Load()` | yes | Once on load; `false` aborts the load |
-| `void OnServerStartup(std::string_view mapName)` | no | At each map start |
-| `bool OnPlayerChat(Player*, std::string_view message, bool teamChat)` | no | On `say` / `say_team`, in place of the default, which consumes menu input and then dispatches `!` commands. `true` swallows the line. Another plugin's commands skip it |
+| `bool Load()` | no | Once, after every member is built and the settings loaded; `false` aborts the load |
 
-Keep custom engine hooks, signals and timers in the App's own `Subscriptions`.
+Map starts and chat are events, not overrides: `Runtime.Map.Started` carries the map name, and
+`Runtime.Players.Said` carries each chat line no menu or command took (set `Blocked` to keep it out
+of chat). Keep custom engine hooks, signals and timers in the App's own `Subscriptions`.
 
-Members initialize in declaration order, so an initializer may reference only members above it.
+Members initialize in declaration order, so an initializer may reference only members above it. A
+member that subscribes or registers commands can do it in its constructor; work that can fail the
+load, or that acts outside the plugin (a server convar, a published service), belongs in `Load`.
 The `App` is destroyed before the `Runtime`, which is what lets its subscriptions unregister while
 the services they point at are still alive.
 
@@ -87,7 +86,7 @@ the services they point at are still alive.
 | --- | --- |
 | `CMakeLists.txt` | one `voltmod_add_plugin(<name>)` call |
 | `plugin.json` | the manifest below |
-| `src/App.hpp`, `src/App.cpp` | the load-cycle object graph and `VOLTMOD_PLUGIN` |
+| `src/App.hpp`, `src/App.cpp` | the load-cycle object graph and its `Load` |
 | `src/Commands.cpp` | the `!ping` command |
 | `src/Config.hpp` | the settings struct and `ConfigManager` |
 | `configs/settings.jsonc` | operator settings |
@@ -130,13 +129,13 @@ Neither list decides load order. `dependencies` decides whether the plugin loads
 reload takes down with it; see @ref host_guide.
 
 The connection lifecycle is not an override. Subscribe to `Runtime.Players.Connected`,
-`.FullyConnected`, `.SettingsChanged` and `.Disconnected` in `Load`; see @ref players_guide.
+`.FullyConnected`, `.SettingsChanged` and `.Disconnected`; see @ref players_guide.
 Custom hooks are in @ref sdk_hooks_guide, typed game events in @ref sdk_events_guide.
 
 ## Load steps
 
-`runtime.LoadSteps` runs named steps and remembers the ones that fail. `Runtime::Initialize` already
-runs the framework's subsystems through it. A step returns @ref VoltMod::Status.
+`runtime.LoadSteps` runs named steps and remembers the ones that fail. The runtime records its own
+services there when it is built. A step returns @ref VoltMod::Status.
 
 ```cpp
 auto& steps = Runtime.LoadSteps;
@@ -150,22 +149,26 @@ if (!steps.Required("Migrations", [this] { return Migrate(); }))
 ```
 
 `Optional` continues without that feature. `Required` is for work the plugin cannot run without:
-return `false` from `Load` and the base hands the first required failure to the host as
-`<step>: <reason>`, which the host logs as the refusal. Both return whether the step succeeded.
+the framework hands the first required failure to the host as `<step>: <reason>`, which the host
+logs as the refusal. It checks once the `App` is built, before `Load`, and again when `Load` returns
+`false`. Both return whether the step succeeded.
 
 After the load the base logs `N load steps in X ms` plus one line per failure. Work that cannot
 fail does not need to be a step.
 
-The standard prelude - settings as a required step, then translations - is one call:
+The standard prelude - settings as a required step, then translations - is the `Config` member's
+initializer:
 
 ```cpp
-if (!VoltMod::LoadConfig(Runtime, Config))
-    return false;
+ConfigManager Config = VoltMod::LoadConfig<ConfigManager>(Runtime);
+ConfigManager Config = VoltMod::LoadConfig(Runtime, ConfigManager{&BuildSnapshot});  // with a builder
 ```
 
 It reads `addons/voltmod/plugins/<plugin>/configs/settings.jsonc` and then `translations`. Pass
-`{.SettingsFile = "configs/other.jsonc"}` or `{.Translations = false}` to change either. See
-@ref config_guide.
+`{.SettingsFile = "configs/other.jsonc"}` or `{.Translations = false}` as the third argument to
+change either. A broken file leaves the defaults in place, and the plugin is refused with
+`Configuration: <path>: <reason>` before `Load` runs, so members built below it never act on them.
+See @ref config_guide.
 
 ## Status sections
 

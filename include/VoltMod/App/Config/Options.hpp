@@ -5,6 +5,7 @@
 #include <VoltMod/Core/Text/Json.hpp>
 #include <concepts>
 #include <functional>
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -40,6 +41,7 @@ public:
      *  key with its line and column. */
     Status Load(std::string_view path)
     {
+        _path = std::string(path);
         auto parsed = Json::ReadFile<TSettings>(path);
         if (!parsed)
         {
@@ -52,11 +54,22 @@ public:
         return {};
     }
 
+    /** Load the path the last @ref Load read, again. */
+    Status Reload()
+    {
+        if (_path.empty())
+        {
+            return std::unexpected(Error::NotReady("no settings file was loaded yet"));
+        }
+        return Load(std::string(_path));
+    }
+
     /** The effective settings. */
     const TSnapshot& Get() const { return _snapshot; }
 
 private:
     Builder _build;
+    std::string _path;
     TSnapshot _snapshot{};
 };
 

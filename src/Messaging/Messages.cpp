@@ -57,21 +57,17 @@ Messages::Messages(Interfaces& interfaces, GameEvents& events, Translations& tra
     : _interfaces(interfaces), _events(events), _translations(translations)
 {}
 
-Status Messages::Initialize()
+Status Messages::Available() const
 {
-    auto& interfaces = _interfaces;
-
-    if (!interfaces.GameEventSystem)
+    if (!_interfaces.GameEventSystem)
     {
         return std::unexpected(Error::NotReady("IGameEventSystem not available"));
     }
 
-    if (!interfaces.NetworkMessages)
+    if (!_interfaces.NetworkMessages)
     {
         return std::unexpected(Error::NotReady("INetworkMessages not available"));
     }
-
-    Log::Info("Message system initialized.");
     return {};
 }
 

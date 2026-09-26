@@ -14,20 +14,17 @@ namespace VoltMod
 {
 
 CommandManager::CommandManager(Policy& policy, Translations& translations, PlayerManager& players,
-                               EntitySystem& entities, Messages& messages)
+                               EntitySystem& entities, Messages& messages, IHost& host)
     : _policy(policy),
       _players(players),
       _messages(messages),
       _binder(std::make_unique<EngineArgBinder>(players, policy, entities)),
       _router(std::make_unique<CommandRouter>(policy, translations))
-{}
+{
+    _router->Attach(&host);
+}
 
 CommandManager::~CommandManager() = default;
-
-void CommandManager::Attach(IHost* host)
-{
-    _router->Attach(host);
-}
 
 CommandBuilder CommandManager::Add(std::string_view name)
 {

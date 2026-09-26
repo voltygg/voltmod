@@ -1,29 +1,28 @@
-#include "Schema/Layout.hpp"
-
 #include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
 #include <VoltMod/Core/Text/Json.hpp>
-#include <VoltMod/Core/Text/Strings.hpp>
-#include <VoltMod/Host/IHostGameData.hpp>
+#include <VoltMod/Menu/PanoramaMenu.hpp>
 #include <VoltMod/Runtime.hpp>
 #include <chrono>
-#include <cstdint>
-#include <eiface.h>
-#include <engine/igameeventsystem.h>
-#include <format>
-#include <icvar.h>
-#include <interfaces/interfaces.h>
 #include <map>
-#include <networksystem/inetworkmessages.h>
-#include <schemasystem/schemasystem.h>
+#include <memory>
 #include <string>
 #include <string_view>
-#include <tier1/convar.h>
 
 namespace VoltMod
 {
 
-Runtime::Runtime(IHostLanguages& languages) : _languages(languages) {}
+Runtime::Runtime(IHost& host, UnsafeServices& unsafe)
+    : PluginName(host.Name()),
+      Version(host.Version()),
+      _languages(host.Languages()),
+      Unsafe(unsafe),
+      Exchange(host.Services()),
+      Commands(Policy, Translations, Players, Entities, Messages, host)
+{
+    RecordServiceSteps();
+    RegisterStatusSections();
+}
 
 Runtime::~Runtime()
 {
@@ -37,152 +36,38 @@ std::string Runtime::PluginFile(std::string_view relative) const
     return VoltMod::PluginFile(PluginName, relative);
 }
 
-PanoramaMenu::Services Runtime::PanoramaMenuServices()
+Subscription Runtime::UsePanorama(PanoramaMenuLayout& layout, uint64_t addonId)
 {
-    return {.Scheduler = Scheduler,
-            .Slots = Slots,
-            .Freeze = Freeze,
-            .ChatInput = Hooks.ChatInput,
-            .Translations = Translations,
-            .Policy = Policy,
-            .Screens = Screens,
-            .Addons = Addons};
-}
-
-bool Runtime::Initialize(const LoadContext& context)
-{
-    PluginName = context.Host->Name();
-    Version = context.Host->Version();
-    InstallLogger(context);
-
-    if (!ResolveInterfaces(context))
-    {
-        return false;
-    }
-
-    if (!InitializeServices(context))
-    {
-        return false;
-    }
-
-    RegisterStatusSections();
-    return true;
-}
-
-void Runtime::InstallLogger(const LoadContext& context)
-{
-    // The host owns the console and prefixes this plugin's log tag.
-    IHost* host = context.Host;
-    Log::SetMinimumLevel(static_cast<LogLevel>(host->MinLogLevel()));
-    Log::SetHandler(
-        [host](LogLevel level, std::string_view message) { host->WriteLog(static_cast<uint8_t>(level), message); });
-
-    SetBaseDir(host->BaseDir());
-}
-
-bool Runtime::ResolveInterfaces(const LoadContext& context)
-{
-    IHost* host = context.Host;
-    auto& gi = Unsafe.Interfaces;
-
-#define VOLTMOD_RESOLVE(field, method, version)                                                                     \
-    gi.field = static_cast<decltype(gi.field)>(host->method(version));                                              \
-    if (!gi.field)                                                                                                  \
-    {                                                                                                               \
-        Strings::CopyToBuffer(context.Error, context.MaxLen, std::format("Could not find interface: {}", version)); \
-        return false;                                                                                               \
-    }
-
-    VOLTMOD_RESOLVE(ServerGameDLL, ServerInterface, INTERFACEVERSION_SERVERGAMEDLL)
-    VOLTMOD_RESOLVE(ServerGameClients, ServerInterface, INTERFACEVERSION_SERVERGAMECLIENTS)
-    VOLTMOD_RESOLVE(NetworkServerService, EngineInterface, NETWORKSERVERSERVICE_INTERFACE_VERSION)
-    VOLTMOD_RESOLVE(GameEntities, ServerInterface, INTERFACEVERSION_SERVERGAMEENTS)
-    VOLTMOD_RESOLVE(Engine, EngineInterface, INTERFACEVERSION_VENGINESERVER)
-    VOLTMOD_RESOLVE(GameEventSystem, EngineInterface, GAMEEVENTSYSTEM_INTERFACE_VERSION)
-    VOLTMOD_RESOLVE(NetworkMessages, EngineInterface, NETWORKMESSAGES_INTERFACE_VERSION)
-    VOLTMOD_RESOLVE(SchemaSystem, EngineInterface, SCHEMASYSTEM_INTERFACE_VERSION)
-    VOLTMOD_RESOLVE(CVar, EngineInterface, CVAR_INTERFACE_VERSION)
-    VOLTMOD_RESOLVE(GameResourceService, EngineInterface, GAMERESOURCESERVICESERVER_INTERFACE_VERSION)
-
-#undef VOLTMOD_RESOLVE
-
-    // Register pending tier1 ConCommands before the engine invokes ServerCommand instances.
-    g_pCVar = gi.CVar;
-    ConVar_Register(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
-    return true;
-}
-
-bool Runtime::InitializeServices(const LoadContext& context)
-{
-    // Plugin logs the summary and required-step failure.
-    auto& steps = LoadSteps;
-
-    // The host read and scanned gamedata once for the process; this only takes the numbers.
-    steps.Optional("GameData", [&]() -> VoltMod::Status {
-        IHostGameData* gameData = context.Host->GameData();
-        if (!gameData)
-        {
-            return std::unexpected(Error::Engine("the host has no gamedata"));
-        }
-
-        return Unsafe.Bindings.Bind(
-            [gameData](GameDataSection sections, std::string_view name) { return gameData->Lookup(sections, name); });
+    auto menu = std::make_unique<PanoramaMenu>(PanoramaMenu::Services{.Scheduler = Scheduler,
+                                                                      .Slots = Slots,
+                                                                      .Freeze = Freeze,
+                                                                      .ChatInput = Hooks.ChatInput,
+                                                                      .Translations = Translations,
+                                                                      .Policy = Policy,
+                                                                      .Screens = Screens,
+                                                                      .Addons = Addons},
+                                               layout, addonId);
+    Subscription preferred = Menus.Prefer(*menu);
+    // Stop routing to the menu before destroying it.
+    return Subscription([menu = std::move(menu), preferred = std::move(preferred)]() mutable {
+        preferred.Reset();
+        menu.reset();
     });
+}
 
-    // A required-step failure is reported to the host and aborts the load.
-    auto requiredStep = [&](std::string_view name, const std::function<VoltMod::Status()>& step) {
-        if (steps.Required(name, step))
-        {
-            return true;
-        }
-
-        Strings::CopyToBuffer(context.Error, context.MaxLen, steps.AbortReason());
-        return false;
-    };
-
-    if (!requiredStep("Messages", [&] { return Messages.Initialize(); }))
-    {
-        return false;
-    }
-
-    // Abort on schema drift, which the host found once for the process.
-    if (!requiredStep("SchemaLayout", [&] { return TakeHostSchema(context); }))
-    {
-        return false;
-    }
-
-    // StartupServer resolves CGameEntitySystem when the first map loads.
-    steps.Optional("Entities", [&] { return Entities.Initialize(); });
-    steps.Optional("ConVars", [&] { return ConVars.Initialize(); });
-    steps.Optional("GameEvents", [&] { return GameEvents.Initialize(); });
-    steps.Optional("ClientConVars", [&] { return Hooks.ClientConVars.Initialize(); });
+void Runtime::RecordServiceSteps()
+{
+    LoadSteps.Optional("GameData", [this] { return Unsafe.GameData; });
+    LoadSteps.Required("Messages", [this] { return Messages.Available(); });
+    LoadSteps.Optional("Entities", [this] { return Entities.Available(); });
+    LoadSteps.Optional("ConVars", [this] { return ConVars.Available(); });
+    LoadSteps.Optional("GameEvents", [this] { return GameEvents.Available(); });
+    LoadSteps.Optional("ClientConVars", [this] { return Hooks.ClientConVars.Available(); });
 
     for (const auto& [feature, reason] : UnavailableFeatures())
     {
         Log::Warn("{} is unavailable: {}", feature, reason);
     }
-    return true;
-}
-
-VoltMod::Status Runtime::TakeHostSchema(const LoadContext& context)
-{
-    const IHost* schema = context.Host;
-
-    // The offsets are baked into this plugin's own copy of the SDK, so the host's check only covers
-    // it when both were generated from the same layout.
-    if (schema->SchemaLayoutStamp() != Schema::GeneratedLayoutStamp())
-    {
-        return std::unexpected(Error::Invalid(
-            std::format("this plugin was built against another schema layout (plugin {:016X}, host {:016X}); "
-                        "rebuild it against this VoltMod",
-                        Schema::GeneratedLayoutStamp(), schema->SchemaLayoutStamp())));
-    }
-
-    if (!schema->SchemaVerified())
-    {
-        return std::unexpected(Error::Invalid("the host found schema drift; its log names every field"));
-    }
-    return {};
 }
 
 std::map<std::string, std::string> Runtime::UnavailableFeatures() const
@@ -212,6 +97,8 @@ std::map<std::string, std::string> Runtime::UnavailableFeatures() const
 void Runtime::RegisterStatusSections()
 {
     // Plugins add status sections during Load; the runtime owns them for the load cycle.
+    Status.RegisterSection("build", [this] { return Json::Write(glz::obj{"name", PluginName, "version", Version}); });
+
     Status.RegisterSection("load", [this] {
         std::map<std::string, std::string> failed;
         for (const FailedStep& step : LoadSteps.Failures())

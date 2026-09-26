@@ -1,15 +1,25 @@
+#include "Schema/Layout.hpp"
+
 #include <VoltMod/App/Internal/PluginModule.hpp>
+#include <VoltMod/Core/Files/Paths.hpp>
 #include <VoltMod/Core/Log.hpp>
-#include <VoltMod/Core/Text/Json.hpp>
 #include <VoltMod/Core/Text/Strings.hpp>
 #include <VoltMod/Engine/Detours.hpp>
+#include <VoltMod/Host/IHostGameData.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <algorithm>
-#include <cstring>
+#include <eiface.h>
+#include <engine/igameeventsystem.h>
 #include <exception>
 #include <format>
+#include <icvar.h>
+#include <interfaces/interfaces.h>
+#include <memory>
+#include <networksystem/inetworkmessages.h>
+#include <schemasystem/schemasystem.h>
 #include <string>
+#include <string_view>
+#include <tier1/convar.h>
 #include <vector>
 
 namespace VoltMod::Internal
@@ -73,52 +83,121 @@ bool PluginModule::Attach(IHost& host, char* error, size_t errorSize) noexcept
     }
 }
 
+template <class T>
+static Status Resolve(T*& field, void* found, std::string_view version)
+{
+    field = static_cast<T*>(found);
+    if (!field)
+    {
+        return std::unexpected(Error::NotReady(std::format("Could not find interface: {}", version)));
+    }
+    return {};
+}
+
+/** Resolve the engine interfaces and bind the host's gamedata. Fails when an interface is missing; a
+ *  gamedata failure is kept in `GameData`, and the services that need it say so. */
+static Result<std::unique_ptr<UnsafeServices>> OpenUnsafe(IHost& host)
+{
+    auto unsafe = std::make_unique<UnsafeServices>();
+    auto& gi = unsafe->Interfaces;
+
+    const Status resolved[] = {
+        Resolve(gi.ServerGameDLL, host.ServerInterface(INTERFACEVERSION_SERVERGAMEDLL), INTERFACEVERSION_SERVERGAMEDLL),
+        Resolve(gi.ServerGameClients, host.ServerInterface(INTERFACEVERSION_SERVERGAMECLIENTS),
+                INTERFACEVERSION_SERVERGAMECLIENTS),
+        Resolve(gi.NetworkServerService, host.EngineInterface(NETWORKSERVERSERVICE_INTERFACE_VERSION),
+                NETWORKSERVERSERVICE_INTERFACE_VERSION),
+        Resolve(gi.GameEntities, host.ServerInterface(INTERFACEVERSION_SERVERGAMEENTS),
+                INTERFACEVERSION_SERVERGAMEENTS),
+        Resolve(gi.Engine, host.EngineInterface(INTERFACEVERSION_VENGINESERVER), INTERFACEVERSION_VENGINESERVER),
+        Resolve(gi.GameEventSystem, host.EngineInterface(GAMEEVENTSYSTEM_INTERFACE_VERSION),
+                GAMEEVENTSYSTEM_INTERFACE_VERSION),
+        Resolve(gi.NetworkMessages, host.EngineInterface(NETWORKMESSAGES_INTERFACE_VERSION),
+                NETWORKMESSAGES_INTERFACE_VERSION),
+        Resolve(gi.SchemaSystem, host.EngineInterface(SCHEMASYSTEM_INTERFACE_VERSION), SCHEMASYSTEM_INTERFACE_VERSION),
+        Resolve(gi.CVar, host.EngineInterface(CVAR_INTERFACE_VERSION), CVAR_INTERFACE_VERSION),
+        Resolve(gi.GameResourceService, host.EngineInterface(GAMERESOURCESERVICESERVER_INTERFACE_VERSION),
+                GAMERESOURCESERVICESERVER_INTERFACE_VERSION),
+    };
+    for (const Status& status : resolved)
+    {
+        if (!status)
+        {
+            return std::unexpected(status.error());
+        }
+    }
+
+    // Register pending tier1 ConCommands before the engine invokes ServerCommand instances.
+    g_pCVar = gi.CVar;
+    ConVar_Register(FCVAR_RELEASE | FCVAR_CLIENT_CAN_EXECUTE | FCVAR_SERVER_CAN_EXECUTE | FCVAR_GAMEDLL);
+
+    // The host read and scanned gamedata once for the process; this only takes the numbers.
+    if (IHostGameData* gameData = host.GameData())
+    {
+        unsafe->GameData = unsafe->Bindings.Bind(
+            [gameData](GameDataSection sections, std::string_view name) { return gameData->Lookup(sections, name); });
+    }
+    else
+    {
+        unsafe->GameData = std::unexpected(Error::Engine("the host has no gamedata"));
+    }
+    return unsafe;
+}
+
+/** The host's one schema check covers this plugin only when both baked the same layout. */
+static Status CheckSchema(const IHost& host)
+{
+    if (host.SchemaLayoutStamp() != Schema::GeneratedLayoutStamp())
+    {
+        return std::unexpected(Error::Invalid(
+            std::format("this plugin was built against another schema layout (plugin {:016X}, host {:016X}); "
+                        "rebuild it against this VoltMod",
+                        Schema::GeneratedLayoutStamp(), host.SchemaLayoutStamp())));
+    }
+    if (!host.SchemaVerified())
+    {
+        return std::unexpected(Error::Invalid("the host found schema drift; its log names every field"));
+    }
+    return {};
+}
+
 bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
 {
     KHook::__exported__khook = host.HookDispatcher();
     _host = &host;
 
-    _runtime = std::make_unique<Runtime>(host.Languages());
-    // Attach before Load so a load step can already reach a peer's published interface.
-    _runtime->Exchange.Attach(&host.Services());
-    _runtime->Commands.Attach(&host);
+    // The host owns the console and prefixes this plugin's log tag; services log while they are built.
+    Log::SetMinimumLevel(static_cast<LogLevel>(host.MinLogLevel()));
+    Log::SetHandler(
+        [&host](LogLevel level, std::string_view message) { host.WriteLog(static_cast<uint8_t>(level), message); });
+    SetBaseDir(host.BaseDir());
 
-    const LoadContext context{.Host = &host, .Error = error, .MaxLen = errorSize};
-    if (!_runtime->Initialize(context))
+    if (Status schema = CheckSchema(host); !schema)
     {
-        if (_runtime->LoadSteps.Count() > 0)
-        {
-            Log::Info("{}", _runtime->LoadSteps.Summary());
-        }
-        _runtime.reset();
-        return false;
+        return Refuse(std::format("SchemaLayout: {}", schema.error().Detail), error, errorSize);
     }
 
-    _runtime->Status.RegisterSection("build", [name = _runtime->PluginName, version = _runtime->Version] {
-        return Json::Write(glz::obj{"name", name, "version", version});
-    });
-
-    _plugin = _factory(*_runtime);
-    if (!_plugin)
+    auto unsafe = OpenUnsafe(host);
+    if (!unsafe)
     {
-        Strings::CopyToBuffer(error, errorSize, "plugin factory returned nothing");
-        Shutdown();
-        return false;
+        return Refuse(unsafe.error().Detail, error, errorSize);
+    }
+    _unsafe = std::move(*unsafe);
+    _runtime = std::make_unique<Runtime>(host, *_unsafe);
+
+    // Members that load settings record a required step, so a failure refuses the plugin before Load.
+    _plugin = _factory(*_runtime);
+    if (std::string reason = _runtime->LoadSteps.AbortReason(); !reason.empty())
+    {
+        return Refuse(reason, error, errorSize);
     }
 
     SubscribeHostEvents();
 
     if (!_plugin->Load())
     {
-        std::string failure = _runtime->LoadSteps.AbortReason();
-        if (failure.empty())
-        {
-            failure = "Load returned false";
-        }
-        Log::Info("{}", _runtime->LoadSteps.Summary());
-        Strings::CopyToBuffer(error, errorSize, failure);
-        Shutdown();
-        return false;
+        std::string reason = _runtime->LoadSteps.AbortReason();
+        return Refuse(reason.empty() ? "Load returned false" : reason, error, errorSize);
     }
 
     _runtime->LoadSteps.Optional("Permissions", [this]() -> Status {
@@ -138,6 +217,17 @@ bool PluginModule::AttachImpl(IHost& host, char* error, size_t errorSize)
     return true;
 }
 
+bool PluginModule::Refuse(std::string_view reason, char* error, size_t errorSize)
+{
+    if (_runtime && _runtime->LoadSteps.Count() > 0)
+    {
+        Log::Info("{}", _runtime->LoadSteps.Summary());
+    }
+    Strings::CopyToBuffer(error, errorSize, reason);
+    Shutdown();
+    return false;
+}
+
 void PluginModule::Detach() noexcept
 {
     Shutdown();
@@ -154,6 +244,7 @@ void PluginModule::Shutdown() noexcept
     _plugin.reset();
     _hostEvents.Clear();
     _runtime.reset();
+    _unsafe.reset();
 }
 
 const char* PluginModule::StatusJson() noexcept
@@ -199,7 +290,7 @@ void PluginModule::OnServerStartup(std::string_view mapName)
     _runtime->Entities.OnServerStartup();
     _runtime->GameEvents.OnServerStartup();
     _runtime->Hooks.ClientConVars.OnServerStartup();
-    _plugin->OnServerStartup(mapName);
+    _runtime->Map.Started.Raise(mapName);
 }
 
 void PluginModule::OnClientConnected(int slot, int64_t steamId, std::string_view name, std::string_view address)

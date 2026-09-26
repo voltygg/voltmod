@@ -7,18 +7,28 @@
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
 namespace VoltMod
 {
 
+/** A chat line that was neither menu input nor a command. Set Blocked to keep it out of chat. */
+struct ChatMessage
+{
+    Player& Sender;
+    std::string_view Text;
+    bool TeamOnly = false;
+    bool Blocked = false;
+};
+
 /**
  * @brief The roster: every connected player, and the signals for the connection lifecycle.
  *
  * Main-thread-only (no mutex) - the engine callbacks that drive it and everything that reads it
  * run on the game thread. The framework owns the mutations; plugins look players up and
- * subscribe to the four events.
+ * subscribe to its events.
  *
  * A returned `Player*` is null when nobody matched, and lives only as long as that connection.
  * Keep a @ref PlayerRef instead of a pointer or a bare slot.
@@ -55,6 +65,9 @@ public:
     /** @brief A player changed a replicated setting (name, userinfo cvars). Fires on every
      *  change, including the ones the engine sends at connect. */
     Event<Player&> SettingsChanged;
+
+    /** @brief A player said something in chat that no menu or command took. */
+    Event<ChatMessage&> Said;
 
     /** The player in @p slot, or null when it is empty. */
     Player* Get(int slot);

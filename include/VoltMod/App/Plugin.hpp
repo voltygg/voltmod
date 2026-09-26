@@ -1,8 +1,6 @@
 #pragma once
 
-#include <VoltMod/Players/Player.hpp>
 #include <VoltMod/Runtime.hpp>
-#include <string_view>
 
 namespace VoltMod
 {
@@ -25,19 +23,8 @@ public:
     /** Framework services for this plugin's load cycle. */
     VoltMod::Runtime& Runtime;
 
-    /** Load configuration and start the plugin. Returning false aborts the load. */
-    virtual bool Load() = 0;
-
-    /** Called at each map start after game-event listeners are attached. */
-    virtual void OnServerStartup(std::string_view /*mapName*/) {}
-
-    /**
-     * @brief A player sent a `say` or `say_team` message.
-     *
-     * The default consumes pending menu input, then dispatches registered `!` and `.` commands.
-     * An override replaces both behaviors.
-     */
-    virtual bool OnPlayerChat(Player* player, std::string_view message, bool teamChat);
+    /** Start work that can fail the load, after every member is built. Returning false aborts it. */
+    virtual bool Load() { return true; }
 };
 
 }  // namespace VoltMod

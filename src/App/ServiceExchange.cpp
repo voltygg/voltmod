@@ -1,27 +1,18 @@
 #include <VoltMod/App/ServiceExchange.hpp>
+#include <string>
 
 namespace VoltMod
 {
 
-void ServiceExchange::PublishNamed(std::string_view iface, void* impl)
+Subscription ServiceExchange::PublishNamed(std::string_view iface, void* impl)
 {
-    if (_services)
-    {
-        _services->Publish(iface, impl);
-    }
-}
-
-void ServiceExchange::UnpublishNamed(std::string_view iface)
-{
-    if (_services)
-    {
-        _services->Unpublish(iface);
-    }
+    _services.Publish(iface, impl);
+    return Subscription([&services = _services, name = std::string(iface)] { services.Unpublish(name); });
 }
 
 void* ServiceExchange::Find(std::string_view iface) const
 {
-    return _services ? _services->Find(iface) : nullptr;
+    return _services.Find(iface);
 }
 
 }  // namespace VoltMod

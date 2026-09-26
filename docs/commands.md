@@ -140,12 +140,14 @@ To run another plugin's console command as a player, use
 
 ## Chat dispatch and quoting
 
-The default `OnPlayerChat` sends `!` messages through `HandleChatMessage`; unknown names
-fall through to normal chat. A plugin with its own chat service overrides `OnPlayerChat` and
-takes over dispatch.
+The framework takes pending menu input first, then sends `!` messages through
+`HandleChatMessage`; unknown names fall through to normal chat, and every line neither took is
+raised as `runtime.Players.Said`. A plugin with chat rules of its own, such as mutes or admin tags,
+subscribes to that and sets `Blocked`.
 
-A line naming a command another plugin registered never reaches `OnPlayerChat`: it goes on to
-that plugin, so chat filters such as admin tagging cannot swallow `!m` before its owner sees it.
+A line naming a command another plugin registered never reaches this plugin's chat handling: it
+goes on to that plugin, so chat filters such as admin tagging cannot swallow `!m` before its owner
+sees it.
 
 The tokenizer treats a `"quoted run"` as one token and `\"` as a literal quote, so
 `!ban Bob 30 "wall bang"` is three arguments. Repeated spaces produce no empty arguments; an

@@ -32,7 +32,7 @@ using Handler = std::function<void(LogLevel level, std::string_view message)>;
 /**
  * Install the process-wide handler and record the calling thread as the game thread.
  *
- * Set once per load cycle by `Runtime::Initialize`, before anything else logs. A file-static rather
+ * Set once per load cycle by the plugin module, before anything else logs. A file-static rather
  * than an injected service because logging must work from code that holds no runtime at all -
  * static initializers, engine trampolines, and worker threads.
  */

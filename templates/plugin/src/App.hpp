@@ -14,12 +14,13 @@ namespace $namespace
  */
 struct App final : VoltMod::Plugin
 {
-    explicit App(VoltMod::Runtime& runtime) : Plugin(runtime) {}
+    using Plugin::Plugin;
 
-    /** Load config and register commands. False aborts the plugin load. */
+    /** Register commands. False aborts the plugin load. */
     bool Load() override;
 
-    ConfigManager Config;
+    /** Loaded first, so every member below is built with settings. */
+    ConfigManager Config = VoltMod::LoadConfig<ConfigManager>(Runtime);
 
 private:
     /** Declared last, so handlers stop before the state they capture goes away. */

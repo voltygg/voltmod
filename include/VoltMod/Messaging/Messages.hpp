@@ -34,8 +34,8 @@ public:
     Messages(const Messages&) = delete;
     Messages& operator=(const Messages&) = delete;
 
-    /** Bind the engine message systems. Returns Error::NotReady when either is unavailable. */
-    Status Initialize();
+    /** NotReady when the engine's event or network message system is missing. */
+    Status Available() const;
 
     void Send(int slot, std::string_view message, MessageKind kind = MessageKind::Chat);
 

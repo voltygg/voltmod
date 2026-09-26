@@ -119,8 +119,8 @@ public:
     ConVars(const ConVars&) = delete;
     ConVars& operator=(const ConVars&) = delete;
 
-    /** Return Error::NotReady when ICvar is unavailable. */
-    Status Initialize();
+    /** NotReady when ICvar is unavailable. */
+    Status Available() const;
 
     /** Resolve by name. Returns NotFound when absent and Invalid on a type mismatch. */
     template <ConVarValue T>

@@ -31,26 +31,17 @@ ClientConVars::ClientConVars(Interfaces& interfaces, const Bindings& bindings, S
 {
     // A slot transition invalidates requests for its previous occupant.
     _slotListener = slots.Changed += [this](int slot) { _pending->Clear(slot); };
+
+    if (Status installed = Install(); !installed)
+    {
+        _failure = installed.error();
+    }
 }
 
 ClientConVars::~ClientConVars()
 {
-    Shutdown();
-}
-
-Status ClientConVars::Initialize()
-{
-    if (_hook)
-    {
-        return {};
-    }
-
-    Status installed = Install();
-    if (!installed)
-    {
-        _failure = installed.error();
-    }
-    return installed;
+    _hook.Reset();
+    _pending->ClearAll();
 }
 
 Status ClientConVars::Available() const
@@ -93,13 +84,6 @@ Status ClientConVars::Install()
     _getCvarValue = getCvarValue;
     Log::Info("Client convar queries enabled (slot offset {}).", _bindings.ClientSlot.Value());
     return {};
-}
-
-void ClientConVars::Shutdown()
-{
-    _hook.Reset();
-    _pending->ClearAll();
-    _getCvarValue = nullptr;
 }
 
 bool ClientConVars::Query(int slot, const std::string& cvarName, QueryCallback callback)

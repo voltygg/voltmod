@@ -3,6 +3,7 @@
 #include <VoltMod/App/Plugin.hpp>
 #include <VoltMod/Core/Signals/Subscriptions.hpp>
 #include <VoltMod/Host/IHost.hpp>
+#include <VoltMod/Unsafe/UnsafeServices.hpp>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -34,6 +35,8 @@ public:
 
 private:
     bool AttachImpl(IHost& host, char* error, size_t errorSize);
+    /** Log the load steps, hand the host @p reason, and tear down what was built. */
+    bool Refuse(std::string_view reason, char* error, size_t errorSize);
 
     void OnServerStartup(std::string_view mapName);
     bool OnConsoleCommand(std::string_view name, std::string_view arguments, int slot);
@@ -50,6 +53,8 @@ private:
 
     PluginFactory _factory;
     IHost* _host = nullptr;
+    /** Declared above the runtime, whose services keep references into it. */
+    std::unique_ptr<UnsafeServices> _unsafe;
     std::unique_ptr<Runtime> _runtime;
     Subscriptions _hostEvents;
     std::unique_ptr<Plugin> _plugin;

@@ -6,7 +6,7 @@
 // KHook's dispatch pointer, declared for every translation unit that installs a hook.
 //
 // Each module carries its own copy, because KHook's header forwards every call through it. The
-// host fills its own from the loader; a plugin defines one in VOLTMOD_PLUGIN and seeds it from
+// host fills its own from the loader; a plugin defines one in its generated entry point and seeds it from
 // IHost::HookDispatcher(). It lives in Engine because vtable hooks must not depend on the
 // composition root.
 namespace KHook

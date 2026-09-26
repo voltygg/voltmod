@@ -58,20 +58,16 @@ public:
 
     /** @p interfaces and @p bindings drive the response hook and the query send path. @p slots
      *  tells the service when a slot changes hands, so an answer can never reach the callback of
-     *  whoever held the slot before. All three must outlive it; the Runtime declares them above. */
+     *  whoever held the slot before. All three must outlive it; the Runtime declares them above.
+     *  Installs the response hook; a failure leaves the service inert and names itself in
+     *  @ref Available. */
     ClientConVars(Interfaces& interfaces, const Bindings& bindings, SlotEvents& slots);
     ~ClientConVars();
     ClientConVars(const ClientConVars&) = delete;
     ClientConVars& operator=(const ClientConVars&) = delete;
 
-    /** Install the response hook. Idempotent; errors leave the service inert. */
-    Status Initialize();
-
-    /** Why queries cannot be sent: the error Initialize returned, or that it has not run. */
+    /** Why queries cannot be sent: the error the hook install returned. */
     Status Available() const;
-
-    /** Remove the hook and drop every pending query. Idempotent; also runs from the destructor. */
-    void Shutdown();
 
     /**
      * Ask @p slot for its value of @p cvarName. False when the service is not @ref Available, the

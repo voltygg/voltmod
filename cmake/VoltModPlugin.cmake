@@ -8,7 +8,8 @@ if(EXISTS "${VOLTMOD_ROOT_DIR}/addons")
 endif()
 
 # A plugin module named by the plugin.json beside it. SOURCES defaults to src/*.cpp;
-# DATABASE adds VoltMod::Database.
+# DATABASE adds VoltMod::Database. The entry point is generated for the <Namespace>::App that
+# src/App.hpp declares, the namespace spelled from the name: admin-system is AdminSystem.
 function(voltmod_add_plugin target_name)
     cmake_parse_arguments(ARG "DATABASE" "" "SOURCES" ${ARGN})
 
@@ -30,6 +31,14 @@ function(voltmod_add_plugin target_name)
             "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
         )
     endif()
+
+    _voltmod_plugin_namespace("${target_name}" namespace)
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/App.hpp")
+        message(FATAL_ERROR "voltmod_add_plugin(${target_name}): src/App.hpp must declare ${namespace}::App")
+    endif()
+    set(plugin_class "${namespace}::App")
+    configure_file("${VOLTMOD_ROOT_DIR}/cmake/PluginEntry.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/PluginEntry.cpp" @ONLY)
+    list(APPEND ARG_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/PluginEntry.cpp")
 
     # VOLTMOD_EXPORT on VoltMod_PluginEntry is the only export the host needs.
     voltmod_add_module("${target_name}"
@@ -74,6 +83,20 @@ function(voltmod_add_plugin target_name)
             )
         endif()
     endforeach()
+endfunction()
+
+# The C++ namespace for a kebab-case plugin name, as the scaffold spells it: each word capitalized.
+function(_voltmod_plugin_namespace target_name out_var)
+    string(REPLACE "-" ";" words "${target_name}")
+    set(result "")
+    foreach(word IN LISTS words)
+        string(SUBSTRING "${word}" 0 1 first)
+        string(SUBSTRING "${word}" 1 -1 rest)
+        string(TOUPPER "${first}" first)
+        string(TOLOWER "${rest}" rest)
+        string(APPEND result "${first}${rest}")
+    endforeach()
+    set(${out_var} "${result}" PARENT_SCOPE)
 endfunction()
 
 # Fail at configure time on a plugin.json the host would refuse.

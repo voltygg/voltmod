@@ -5,6 +5,7 @@
 #include <VoltMod/App/StatusService.hpp>
 #include <VoltMod/Commands/CommandManager.hpp>
 #include <VoltMod/Core/LoadSteps.hpp>
+#include <VoltMod/Core/Signals/Subscription.hpp>
 #include <VoltMod/Core/Slots/SlotEvents.hpp>
 #include <VoltMod/Core/Text/Translations.hpp>
 #include <VoltMod/Core/Time/Scheduler.hpp>
@@ -23,14 +24,14 @@
 #include <VoltMod/Http/HttpClient.hpp>
 #include <VoltMod/Menu/CenterHtmlMenu.hpp>
 #include <VoltMod/Menu/MenuRouter.hpp>
-#include <VoltMod/Menu/PanoramaMenu.hpp>
+#include <VoltMod/Menu/PanoramaMenuLayout.hpp>
 #include <VoltMod/Messaging/Messages.hpp>
 #include <VoltMod/Players/PlayerManager.hpp>
 #include <VoltMod/Players/Policy.hpp>
 #include <VoltMod/Ui/ScreenManager.hpp>
 #include <VoltMod/Unsafe/UnsafeServices.hpp>
 #include <VoltMod/Workshop/Addons.hpp>
-#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -39,48 +40,39 @@
 namespace VoltMod
 {
 
-/** What @ref Runtime::Initialize needs from the plugin module. */
-struct LoadContext
-{
-    IHost* Host = nullptr;
-    char* Error = nullptr;  ///< shown by the host when the load fails
-    size_t MaxLen = 0;
-};
-
 /**
  * @brief Framework services for one load and unload cycle.
  *
- * Members are declared in dependency order. Unsafe is initialized before services that use its
- * bindings. Screens and Addons follow the hook tiers so their hooks are removed first.
+ * Members are declared in dependency order, and each engine service does its setup when built;
+ * a feature that did not bind says why in its `Available()` and in @ref LoadSteps. Screens and
+ * Addons follow the hook tiers so their hooks are removed first.
  */
 class Runtime
 {
 public:
-    /** @p languages is the host's table; it outlives the runtime. */
-    explicit Runtime(IHostLanguages& languages);
+    /** @p host and @p unsafe outlive the runtime; the plugin module opened @p unsafe first. */
+    Runtime(IHost& host, UnsafeServices& unsafe);
     ~Runtime();
     Runtime(const Runtime&) = delete;
     Runtime& operator=(const Runtime&) = delete;
-
-    /**
-     * Initialize every subsystem as a step in @ref LoadSteps.
-     * @return false when loading must abort; @p context.Error contains the reason.
-     */
-    bool Initialize(const LoadContext& context);
 
     /** Drive the scheduler. Called once per frame from the GameFrame hook. */
     void OnGameFrame();
 
     /** The plugin's `plugin.json` name and directory under `addons/voltmod/plugins/`. */
-    std::string PluginName;
+    const std::string PluginName;
     /** The plugin's `plugin.json` version. */
-    std::string Version;
+    const std::string Version;
 
     /** "addons/voltmod/plugins/<PluginName>/<relative>". */
     std::string PluginFile(std::string_view relative) const;
 
-    /** What a plugin's @ref PanoramaMenu needs, from this runtime's services. */
-    PanoramaMenu::Services PanoramaMenuServices();
+    /**
+     * Draw menus on @p layout for players who have it, center HTML for the rest, while the
+     * returned Subscription lives. Hold it below @p layout, which the menu refers to.
+     * @param addonId the workshop addon clients need for the layout; zero when it is built in.
+     */
+    [[nodiscard]] Subscription UsePanorama(PanoramaMenuLayout& layout, uint64_t addonId);
 
     VoltMod::LoadSteps LoadSteps;
 
@@ -100,8 +92,8 @@ private:
 public:
     VoltMod::Translations Translations{_languages};
 
-    /** The opt-in engine-access tier (Interfaces, Bindings). Populated by Initialize. */
-    UnsafeServices Unsafe;
+    /** The opt-in engine-access tier (Interfaces, Bindings), resolved before any service. */
+    UnsafeServices& Unsafe;
 
     /** Schema field offsets resolve themselves, per process rather than per load - see @ref Field. */
     EntitySystem Entities{Unsafe.Interfaces, Unsafe.Bindings};
@@ -159,17 +151,14 @@ public:
     /** Routes menus to center HTML or a plugin-preferred surface. */
     MenuRouter Menus{CenterHtml};
 
-    VoltMod::CommandManager Commands{Policy, Translations, Players, Entities, Messages};
+    VoltMod::CommandManager Commands;
 
     /** HTTP client. Completions are replayed on the game thread. */
     HttpClient Http{Scheduler};
 
 private:
-    void InstallLogger(const LoadContext& context);
-    bool ResolveInterfaces(const LoadContext& context);
-    bool InitializeServices(const LoadContext& context);
-    /** Take the host's one schema check, refusing the load unless it covers these baked offsets. */
-    VoltMod::Status TakeHostSchema(const LoadContext& context);
+    /** Record each service as a load step: Messages required, the rest optional. */
+    void RecordServiceSteps();
     void RegisterStatusSections();
     /** Each optional feature that cannot work this load, with the reason. */
     std::map<std::string, std::string> UnavailableFeatures() const;

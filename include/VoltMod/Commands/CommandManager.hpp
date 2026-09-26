@@ -25,8 +25,8 @@ namespace VoltMod
  * @code
  * commands.Add("slap")
  *     .Permission("admin.control")
- *     .Run([&](Caller c, Args::Target t, Args::Opt<Args::Int> damage) -> Result<Reply> {
- *         return c.Ok("cmd.slapped", {{"name", t.Value->Name()}});
+ *     .Run([&](Caller c, Args::Target t, Args::Opt<Args::Int> damage) {
+ *         return c.Ok("cmd.slapped", {{"name", t->Name()}});
  *     });
  * @endcode
  *
@@ -36,15 +36,13 @@ namespace VoltMod
 class CommandManager
 {
 public:
-    /** Every argument must outlive the manager. */
+    /** Every argument must outlive the manager. Command names are shared with the other plugins
+     *  on @p host. */
     CommandManager(Policy& policy, Translations& translations, PlayerManager& players, EntitySystem& entities,
-                   Messages& messages);
+                   Messages& messages, IHost& host);
     ~CommandManager();
     CommandManager(const CommandManager&) = delete;
     CommandManager& operator=(const CommandManager&) = delete;
-
-    /** Share command names with the other plugins on @p host. Null keeps them local. Framework only. */
-    void Attach(IHost* host);
 
     /** Start a command; `.Run(handler)` installs it. */
     CommandBuilder Add(std::string_view name);

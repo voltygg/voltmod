@@ -22,7 +22,8 @@ struct FailedStep
 /**
  * @brief Named steps for one plugin load, retaining failed steps.
  *
- * `Runtime::Initialize` and `Plugin::Load` run work through @ref Optional and @ref Required.
+ * The runtime records its services here, and plugin members and `Plugin::Load` run work through
+ * @ref Optional and @ref Required.
  * @ref Plugin logs @ref Summary and copies @ref AbortReason to the host's error buffer.
  */
 class LoadSteps
