@@ -8,8 +8,7 @@ if(EXISTS "${VOLTMOD_ROOT_DIR}/addons")
 endif()
 
 # Builds the plugin named in the plugin.json beside it; the generated entry point creates the
-# <Namespace>::App from src/App.hpp (admin-system -> AdminSystem).
-# SOURCES defaults to src/*.cpp; DATABASE links VoltMod::Database.
+# <Namespace>::App from src/App.hpp. SOURCES defaults to src/*.cpp; DATABASE links VoltMod::Database.
 function(voltmod_add_plugin target_name)
     cmake_parse_arguments(ARG "DATABASE" "" "SOURCES" ${ARGN})
 
@@ -40,7 +39,6 @@ function(voltmod_add_plugin target_name)
     configure_file("${VOLTMOD_ROOT_DIR}/cmake/PluginEntry.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/PluginEntry.cpp" @ONLY)
     list(APPEND ARG_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/PluginEntry.cpp")
 
-    # VOLTMOD_EXPORT on VoltMod_PluginEntry is the only export the host needs.
     voltmod_add_module("${target_name}"
         SOURCES ${ARG_SOURCES}
         OUTPUT_DIR "${CMAKE_BINARY_DIR}/plugins/${target_name}/${VOLTMOD_PLATFORM_ARCH}"
@@ -85,7 +83,7 @@ function(voltmod_add_plugin target_name)
     endforeach()
 endfunction()
 
-# The C++ namespace for a kebab-case plugin name, as the scaffold spells it: each word capitalized.
+# The C++ namespace for a kebab-case plugin name: admin-system is AdminSystem.
 function(_voltmod_plugin_namespace target_name out_var)
     string(REPLACE "-" ";" words "${target_name}")
     set(result "")
@@ -93,7 +91,6 @@ function(_voltmod_plugin_namespace target_name out_var)
         string(SUBSTRING "${word}" 0 1 first)
         string(SUBSTRING "${word}" 1 -1 rest)
         string(TOUPPER "${first}" first)
-        string(TOLOWER "${rest}" rest)
         string(APPEND result "${first}${rest}")
     endforeach()
     set(${out_var} "${result}" PARENT_SCOPE)
@@ -110,10 +107,10 @@ function(_voltmod_check_plugin_json target_name)
     file(READ "${manifest}" json)
     string(JSON name ERROR_VARIABLE error GET "${json}" name)
     if(error OR NOT name STREQUAL target_name)
-        message(FATAL_ERROR "${manifest}: \"name\" must be \"${target_name}\" (${error})")
+        message(FATAL_ERROR "${manifest}: \"name\" must be \"${target_name}\"")
     endif()
     string(JSON version ERROR_VARIABLE error GET "${json}" version)
     if(error OR version STREQUAL "")
-        message(FATAL_ERROR "${manifest}: \"version\" is missing (${error})")
+        message(FATAL_ERROR "${manifest}: \"version\" is missing")
     endif()
 endfunction()

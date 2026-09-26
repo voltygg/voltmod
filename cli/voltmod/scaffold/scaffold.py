@@ -45,7 +45,6 @@ def template_values(name: str) -> dict[str, str]:
     return {
         "name": name,
         "namespace": pascal,
-        "plugin_class": f"{pascal}Plugin",
         "title": " ".join(words),
         "tag": pascal.upper()[:12],
     }
