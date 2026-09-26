@@ -31,6 +31,8 @@ What changed in each VoltMod release. Older history is in git.
   (`PlayerDeath::VictimSlot` and `PlayerHurt::VictimSlot` included), `PlayerHurt::Hitbox` is `Hitgroup`,
   `PlayerTeam::OldTeam` is `Oldteam`, `BulletImpact::Slot` is `ShooterSlot`, and each struct's `Name` is
   `EventName`. `GameEvents::On` drops an event whose `Slot` is invalid.
+- `ConVars::ExecuteClientCommand(slot, cmd)` is `Controller::ExecuteCommand(cmd)`. `Logger<T>` and
+  `EntitySystem::AlivePawns()` are gone.
 - Rebuild every plugin: the host ABI is now 5 (`IHostEvents::OnClientConnecting`).
 
 ### New

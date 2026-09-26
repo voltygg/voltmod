@@ -129,10 +129,6 @@ public:
     /** Queue a server console line. A line with an embedded newline is refused and logged. */
     void ExecuteServerCommand(std::string_view command);
 
-    /** Run one console command as player @p slot, server-side and without a chat echo; plugins
-     *  hooking ISource2GameClients::ClientCommand see it. Refuses and logs `;` and newlines. */
-    void ExecuteClientCommand(int slot, std::string_view command);
-
     /**
      * @brief Assign a convar over the console, quoting the value.
      *

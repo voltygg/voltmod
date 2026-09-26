@@ -204,26 +204,6 @@ long responses. A section capturing `this` must live on an object the `Runtime` 
 and hand the line to the host, which prefixes the plugin's `logTag`. The host also sets the
 minimum level, so a line below it is never formatted.
 
-@ref VoltMod::Logger adds the name of the class that logged. It is in
-`<VoltMod/App/Logger.hpp>`, not in `<VoltMod/Api.hpp>`:
-
-```cpp
-class BhopManager
-{
-    void OnTick(int elapsed)
-    {
-        _log.Info("ready in {}ms", elapsed);  // [MYPLUGIN] [BhopManager] ready in 12ms
-    }
-
-    VoltMod::Logger<BhopManager> _log;
-};
-```
-
-Namespaces and template arguments are dropped, so `Reports::ReportQueue` logs as `[ReportQueue]`.
-It holds nothing and takes no constructor argument.
-
-`volt log <name> <info|warn|error>` raises or lowers one plugin's level while the server runs.
-
 ## Cleanup on unload
 
 Nothing survives the App's destructor, so a `volt reload` starts from clean state. Cleanup belongs

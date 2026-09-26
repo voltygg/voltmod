@@ -84,34 +84,6 @@ void ConVars::ExecuteServerCommand(std::string_view command)
     engine->ServerCommand(line.c_str());
 }
 
-void ConVars::ExecuteClientCommand(int slot, std::string_view command)
-{
-    auto* cvar = _interfaces.CVar;
-    auto* clients = _interfaces.ServerGameClients;
-    if (!cvar || !clients || !IsValidSlot(slot))
-    {
-        return;
-    }
-
-    CCommand args;
-    if (command.empty() || command.find_first_of(";\r\n") != std::string_view::npos ||
-        !args.Tokenize(CUtlString(std::string(command).c_str())) || args.ArgC() == 0)
-    {
-        Log::Warn("ConVars: refused client command '{}'; it must be one non-empty command.", command);
-        return;
-    }
-
-    ConCommandRef registered = cvar->FindConCommand(args.Arg(0));
-    if (registered.IsValidRef())
-    {
-        cvar->DispatchConCommand(registered, CCommandContext(CT_FIRST_SPLITSCREEN_CLIENT, CPlayerSlot(slot)), args);
-    }
-    else
-    {
-        clients->ClientCommand(CPlayerSlot(slot), args);
-    }
-}
-
 void ConVars::SetByConsole(std::string_view name, std::string_view value)
 {
     ExecuteServerCommand(std::format("{} {}", name, Strings::QuoteConsoleArg(value)));

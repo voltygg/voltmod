@@ -54,6 +54,10 @@ public:
 
     void Kick(std::string_view reason) const;
 
+    /** Run one console command as this player, server-side and without a chat echo; plugins
+     *  hooking ISource2GameClients::ClientCommand see it. Refuses and logs `;` and newlines. */
+    void ExecuteCommand(std::string_view command) const;
+
     /** Does nothing for a team outside Spectator..CT or when the vtable slot did not bind. */
     void ChangeTeam(VoltMod::Team team) const;
 

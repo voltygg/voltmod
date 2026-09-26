@@ -135,7 +135,7 @@ in chat. A `ServerOnly()` command ignores players, so put an operator command wi
 permission there.
 
 To run another plugin's console command as a player, use
-`runtime.ConVars.ExecuteClientCommand(slot, "mm_lvl")`. Nothing is echoed to chat.
+`runtime.Entities.Controller(slot).ExecuteCommand("mm_lvl")`. Nothing is echoed to chat.
 
 ## Chat dispatch and quoting
 

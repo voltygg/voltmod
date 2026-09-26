@@ -185,18 +185,4 @@ std::vector<Entity> EntitySystem::FindAll(std::string_view className)
     return found;
 }
 
-std::vector<VoltMod::Pawn> EntitySystem::AlivePawns()
-{
-    std::vector<VoltMod::Pawn> pawns;
-    pawns.reserve(MaxPlayers);
-    for (int slot = 0; slot < MaxPlayers; ++slot)
-    {
-        if (VoltMod::Pawn pawn = Pawn(slot); pawn.IsAlive())
-        {
-            pawns.push_back(pawn);
-        }
-    }
-    return pawns;
-}
-
 }  // namespace VoltMod

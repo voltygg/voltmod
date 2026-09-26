@@ -1,9 +1,14 @@
+#include <VoltMod/Core/Log.hpp>
+#include <VoltMod/Core/Slots/Slot.hpp>
 #include <VoltMod/Engine/GameData/Bindings.hpp>
 #include <VoltMod/Engine/Interfaces.hpp>
 #include <VoltMod/Entities/EntitySystem.hpp>
 #include <VoltMod/Schema/Api.hpp>
 #include <eiface.h>
+#include <icvar.h>
 #include <string>
+#include <string_view>
+#include <tier1/convar.h>
 #include <utility>
 
 namespace VoltMod
@@ -58,6 +63,39 @@ void Controller::Kick(std::string_view reason) const
 
     const std::string text(reason);
     _sys->Interfaces().Engine->DisconnectClient(CPlayerSlot(_slot), NETWORK_DISCONNECT_KICKED, text.c_str());
+}
+
+void Controller::ExecuteCommand(std::string_view command) const
+{
+    if (!_e || !_sys)
+    {
+        return;
+    }
+    const int slot = _slot;
+    auto* cvar = _sys->Interfaces().CVar;
+    auto* clients = _sys->Interfaces().ServerGameClients;
+    if (!cvar || !clients || !IsValidSlot(slot))
+    {
+        return;
+    }
+
+    CCommand args;
+    if (command.empty() || command.find_first_of(";\r\n") != std::string_view::npos ||
+        !args.Tokenize(CUtlString(std::string(command).c_str())) || args.ArgC() == 0)
+    {
+        Log::Warn("Controller: refused client command '{}'; it must be one non-empty command.", command);
+        return;
+    }
+
+    ConCommandRef registered = cvar->FindConCommand(args.Arg(0));
+    if (registered.IsValidRef())
+    {
+        cvar->DispatchConCommand(registered, CCommandContext(CT_FIRST_SPLITSCREEN_CLIENT, CPlayerSlot(slot)), args);
+    }
+    else
+    {
+        clients->ClientCommand(CPlayerSlot(slot), args);
+    }
 }
 
 void Controller::ChangeTeam(VoltMod::Team team) const

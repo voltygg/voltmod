@@ -64,9 +64,6 @@ public:
     /** Every entity of @p className, taken now, so removing them while looping is safe. */
     std::vector<Entity> FindAll(std::string_view className);
 
-    /** Every living player's pawn, in slot order. */
-    std::vector<VoltMod::Pawn> AlivePawns();
-
     /** An error when entity lookups can never work, or entities cannot be created or spawned. A
      *  missing system before the first map is fine: @ref OnServerStartup picks it up. */
     Status Available() const;

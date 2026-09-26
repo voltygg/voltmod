@@ -136,7 +136,6 @@ VoltMod::Pawn body = es.Pawn(ref);         // the same, and falsy unless it is a
 VoltMod::Entity rules = es.Find("cs_gamerules");          // the first of a class
 for (const VoltMod::Entity& door : es.FindAll("func_door")) // a snapshot: removing is safe
     door.Remove();
-for (const VoltMod::Pawn& alive : es.AlivePawns())          // every living player, in slot order
     alive.Heal(10);
 ```
 

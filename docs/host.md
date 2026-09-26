@@ -73,7 +73,7 @@ behavior through an interface rather than handing out a manager or a framework o
 ```cpp
 struct IBanService
 {
-    static constexpr const char* InterfaceName = "admin.IBanService/1";
+    static constexpr std::string_view InterfaceName = "admin.IBanService/1";
     virtual bool IsBanned(uint64_t steamId) const = 0;
 
 protected:
