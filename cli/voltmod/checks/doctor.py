@@ -11,7 +11,7 @@ from voltmod.framework.gamedata import parse_gamedata, read_gamedata
 from voltmod.platforms import Platform
 from voltmod.project import Project
 from voltmod.server.cs2_server import GAMEINFO, Cs2Server
-from voltmod.server.install import host_binary, loader_binary
+from voltmod.server.install import loader_binary
 from voltmod.steam import CS2_APP
 from voltmod.toolchain.conan import PACKAGE_REMOTE, has_remote, profile_dirs
 from voltmod.toolchain.msvc import msvc_version
@@ -102,12 +102,8 @@ def _check_server(server: Cs2Server) -> Iterator[CheckResult]:
             "`voltmod serve` restores it",
         )
 
-    installed = any(
-        (game_dir / host_binary(platform)).is_file()
-        and (game_dir / loader_binary(platform)).is_file()
-        for platform in Platform
-    )
-    if installed:
+    # The loader and the host install together.
+    if (game_dir / loader_binary(Platform.host())).is_file():
         yield CheckResult.ok("VoltMod host installed")
     else:
         yield CheckResult.warn(
